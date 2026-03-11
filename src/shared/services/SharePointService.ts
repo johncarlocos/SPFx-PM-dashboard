@@ -102,8 +102,7 @@ export class SharePointService {
   // ── Project CRUD ──────────────────────────────────────────
 
   public async loadProjects(): Promise<IProject[]> {
-    const sel = 'Id,projNum,Title,name,status,year,hrsAllowed,hrsUsed,rfisAllowed,quoteNum,contact,company,email,mobile,clientNum,startDate,finishDate,ifaDate,ifcDate,detailers,isEwo,ewoNum,parentId';
-    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items?$select=${sel}&$top=500&$orderby=projNum asc`);
+    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items?$top=500&$orderby=projNum asc`);
     return (d.value || []).map((i: any) => ({
       id: i.projNum || String(i.Id),
       spId: i.Id,
@@ -175,8 +174,7 @@ export class SharePointService {
   // ── RFI CRUD ──────────────────────────────────────────────
 
   public async loadRfis(): Promise<IRfi[]> {
-    const sel = 'Id,rfiNum,rfiSeq,projectId,projectName,rfiType,status,submittedTo,toCompany,by,byCompany,cc,dateIssued,dateRequired,description,attachments,clientRfi,dateReceived,response,responseDesc,sentBy,sentByCompany,impacted,ewoRef,ewoCcn,tracked,model,connections,checking,drawings,admin,revision,email';
-    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_RFI}')/items?$select=${sel}&$top=1000&$orderby=rfiSeq asc`);
+    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_RFI}')/items?$top=1000&$orderby=rfiSeq asc`);
     return (d.value || []).map((i: any) => ({
       id: i.rfiNum || String(i.Id),
       spId: i.Id,

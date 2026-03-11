@@ -19,6 +19,8 @@ const IMG_LOGO_PDF = '';
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Mod = 'projects' | 'rfis';
 type SDir = 'asc' | 'desc';
+type Role = 'manager' | 'staff';
+type SpMode = 'live' | 'local' | 'detecting';
 
 interface PanelState {
   type: 'projDetail' | 'projForm' | 'rfiDetail' | 'rfiForm' | null;
@@ -343,13 +345,14 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
 interface ProjDetailProps {
   proj: IProject;
   rfis: IRfi[];
+  isManager: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onNewRfi: () => void;
   onViewRfi: (r: IRfi) => void;
 }
 
-const ProjDetail: React.FC<ProjDetailProps> = ({ proj, rfis, onEdit, onDelete, onNewRfi, onViewRfi }) => {
+const ProjDetail: React.FC<ProjDetailProps> = ({ proj, rfis, isManager, onEdit, onDelete, onNewRfi, onViewRfi }) => {
   const projRfis = rfis.filter(r => r.projectId === proj.id);
   const open = projRfis.filter(r => effSt(r) === 'Open' || effSt(r) === 'Partially Open (Revise and Resend)').length;
   const overdue = projRfis.filter(r => isOD(r)).length;
@@ -367,9 +370,9 @@ const ProjDetail: React.FC<ProjDetailProps> = ({ proj, rfis, onEdit, onDelete, o
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <IBtn onClick={onEdit} title="Edit project">Edit</IBtn>
-        <IBtn onClick={onNewRfi} title="Create RFI for this project">+ New RFI</IBtn>
-        <IBtn onClick={onDelete} danger title="Delete project">Delete</IBtn>
+        {isManager && <IBtn onClick={onEdit} title="Edit project">Edit</IBtn>}
+        {isManager && <IBtn onClick={onNewRfi} title="Create RFI for this project">+ New RFI</IBtn>}
+        {isManager && <IBtn onClick={onDelete} danger title="Delete project">Delete</IBtn>}
       </div>
 
       <SDiv label="Overview" />
@@ -601,11 +604,12 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, onSave, onC
 interface RfiDetailProps {
   rfi: IRfi;
   proj: IProject | undefined;
+  isManager: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, onEdit, onDelete }) => {
+const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, onEdit, onDelete }) => {
   const total = rfiTot(rfi);
   const st = effSt(rfi);
 
@@ -643,7 +647,7 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, onEdit, onDelete }) =>
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <IBtn onClick={onEdit} title="Edit RFI">Edit</IBtn>
+        {isManager && <IBtn onClick={onEdit} title="Edit RFI">Edit</IBtn>}
         <button onClick={handleSendToClient} style={{
           fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, letterSpacing: '.06em',
           textTransform: 'uppercase', padding: '5px 14px', borderRadius: 5, cursor: 'pointer',
@@ -652,7 +656,7 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, onEdit, onDelete }) =>
         }}>
           Send to Client
         </button>
-        <IBtn onClick={onDelete} danger title="Delete RFI">Delete</IBtn>
+        {isManager && <IBtn onClick={onDelete} danger title="Delete RFI">Delete</IBtn>}
       </div>
 
       <SDiv label="Part A — Request Information" />
@@ -867,6 +871,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   // ── View
   const [mod, setMod] = React.useState<Mod>('projects');
   const [clock, setClock] = React.useState('');
+  const [role, setRole] = React.useState<Role>('manager');
+  const [spMode, setSpMode] = React.useState<SpMode>('detecting');
 
   // ── Project filters & sort
   const [srch, setSrch] = React.useState('');
@@ -898,6 +904,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   // ── Load data
   const loadData = React.useCallback(async () => {
     setSpLoading(true);
+    setSpMode('detecting');
     try {
       const [p, r] = await Promise.all([
         spService.current.loadProjects(),
@@ -905,9 +912,11 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
       ]);
       setProjects(p);
       setRfis(r);
+      setSpMode('live');
     } catch (e) {
       const msg = (e instanceof Error) ? e.message : String(e);
-      toast('Failed to load data: ' + msg, 'error');
+      toast('SharePoint unavailable — running in local mode. (' + msg + ')', 'error');
+      setSpMode('local');
     } finally {
       setSpLoading(false);
     }
@@ -999,12 +1008,16 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   }, [visRfis]);
 
   // ── Stat cards
-  const allActive = projects.filter(p => !p.isEwo && p.status === 'Active').length;
-  const allOnHold = projects.filter(p => !p.isEwo && p.status === 'On Hold').length;
-  const allOverBudget = projects.filter(p => !p.isEwo && (p.status === 'Over Budget' || (p.hrsAllowed > 0 && p.hrsUsed > p.hrsAllowed))).length;
+  const mainProjects = projects.filter(p => !p.isEwo);
+  const allActive = mainProjects.filter(p => p.status === 'Active').length;
+  const allComplete = mainProjects.filter(p => p.status === 'Complete').length;
+  const allOverBudget = mainProjects.filter(p => p.status === 'Over Budget' || (p.hrsAllowed > 0 && p.hrsUsed > p.hrsAllowed)).length;
+  const allEwos = projects.filter(p => p.isEwo).length;
   const totalHrsUsed = projects.reduce((s, p) => s + p.hrsUsed, 0);
+  const totalHrsAllowed = projects.reduce((s, p) => s + p.hrsAllowed, 0);
   const rfiOpen = rfis.filter(r => effSt(r) === 'Open').length;
   const rfiOverdue = rfis.filter(r => isOD(r)).length;
+  const rfiPartial = rfis.filter(r => r.status === 'Partially Open (Revise and Resend)').length;
   const rfiClosed = rfis.filter(r => r.status === 'Closed').length;
   const rfiImpact = rfis.filter(r => r.impacted === 'Yes').reduce((s, r) => s + rfiTot(r), 0);
 
@@ -1148,7 +1161,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
     <div className={styles.dashboardRoot}>
       {/* ── Header ─────────────────────────────────────────────── */}
       <header style={headerBg}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 28 }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 22 }}>
           {IMG_LOGO_DASH
             ? <img src={IMG_LOGO_DASH} alt="3 Edge" style={{ height: 32 }} />
             : (
@@ -1159,6 +1173,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             )
           }
         </div>
+
+        {/* Nav Tabs */}
         <div style={{ display: 'flex', gap: 2 }}>
           {(['projects', 'rfis'] as Mod[]).map((m: Mod) => (
             <button key={m} onClick={() => setMod(m)} style={{
@@ -1168,34 +1184,78 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               border: mod === m ? '1px solid var(--3eg)' : '1px solid transparent',
               color: mod === m ? 'var(--3eg)' : '#8a9bb0', transition: 'all .15s'
             }}>
-              {m === 'projects' ? 'Project Tracker' : 'RFI Tracker'}
+              {m === 'projects' ? 'Projects' : 'RFIs'}
             </button>
           ))}
         </div>
+
         <div style={{ flex: 1 }} />
-        {mod === 'projects' && (
+
+        {/* Time Doctor (manager only) */}
+        {mod === 'projects' && role === 'manager' && (
           <button onClick={() => setTdModal(true)} style={{
             fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, letterSpacing: '.1em',
             textTransform: 'uppercase', padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
             background: 'rgba(212,136,10,0.14)', border: '1px solid var(--am)', color: 'var(--am)',
-            marginRight: 10, whiteSpace: 'nowrap'
+            marginRight: 8, whiteSpace: 'nowrap'
           }}>
             Time Doctor Import
           </button>
         )}
+
+        {/* Refresh */}
         <button onClick={loadData} style={{
           fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, letterSpacing: '.1em',
           textTransform: 'uppercase', padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
           background: spLoading ? 'rgba(42,158,42,0.08)' : 'transparent',
-          border: '1px solid rgba(138,155,176,.3)', color: '#8a9bb0', marginRight: 14
+          border: '1px solid rgba(138,155,176,.3)', color: '#8a9bb0', marginRight: 8
         }}>
           {spLoading ? 'Loading...' : 'Refresh'}
         </button>
+
+        {/* SP Status indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginRight: 14 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: spMode === 'live' ? 'var(--gn)' : spMode === 'local' ? 'var(--am)' : '#5a6a80',
+            flexShrink: 0
+          }} className={spMode === 'detecting' ? styles.pulse : ''} />
+          {spMode === 'local' && (
+            <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--am)', background: 'rgba(212,136,10,0.14)', border: '1px solid var(--am)', borderRadius: 3, padding: '1px 6px' }}>
+              Local Mode
+            </span>
+          )}
+        </div>
+
+        {/* Role toggle */}
+        <div style={{ display: 'flex', border: '1px solid rgba(138,155,176,.3)', borderRadius: 4, overflow: 'hidden', marginRight: 14 }}>
+          {(['manager', 'staff'] as Role[]).map(r => (
+            <button key={r} onClick={() => setRole(r)} style={{
+              fontFamily: 'Montserrat', fontWeight: 700, fontSize: 10.5, letterSpacing: '.1em',
+              textTransform: 'uppercase', padding: '4px 12px', cursor: 'pointer', border: 'none',
+              background: role === r ? (r === 'manager' ? 'var(--3eg)' : 'rgba(90,106,128,0.25)') : 'transparent',
+              color: role === r ? (r === 'manager' ? '#111418' : '#fff') : '#8a9bb0',
+              transition: 'all .15s'
+            }}>
+              {r}
+            </button>
+          ))}
+        </div>
+
+        {/* Clock + user */}
         <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 11.5, color: '#8a9bb0', whiteSpace: 'nowrap' }}>{clock}</div>
         {props.userDisplayName && (
-          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0', marginLeft: 14, whiteSpace: 'nowrap' }}>{props.userDisplayName}</div>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0', marginLeft: 12, whiteSpace: 'nowrap' }}>{props.userDisplayName}</div>
         )}
       </header>
+
+      {/* ── Staff Banner ─────────────────────────────────────────── */}
+      {role === 'staff' && (
+        <div style={{ background: 'rgba(212,136,10,0.10)', borderBottom: '1px solid var(--am)', padding: '7px 24px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--am)' }}>Staff View</span>
+          <span style={{ fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>— Read-only access. Switch to Manager to create or edit records.</span>
+        </div>
+      )}
 
       {/* ── Body ────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 48px' }}>
@@ -1204,11 +1264,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
         {mod === 'projects' && (
           <div className={styles.fade}>
             <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
-              <Stat label="Active" value={allActive} col="var(--3eg)" sub="projects" />
-              <Stat label="On Hold" value={allOnHold} col="var(--am)" sub="projects" />
-              <Stat label="Over Budget" value={allOverBudget} col="var(--rd)" warn={allOverBudget > 0} sub="projects" />
-              <Stat label="Total Projects" value={projects.filter(p => !p.isEwo).length} col="var(--bl)" sub="all time" />
-              <Stat label="Hours Used" value={totalHrsUsed.toFixed(0) + 'h'} col="var(--pu)" sub="across all projects" />
+              <Stat label="Total Projects" value={mainProjects.length} col="var(--bl)" sub={yr !== 'all' ? yr + ' year' : 'all time'} />
+              <Stat label="Active" value={allActive} col="var(--3eg)" sub="in progress" />
+              <Stat label="Over Budget" value={allOverBudget} col="var(--rd)" warn={allOverBudget > 0} sub="hrs exceeded" />
+              <Stat label="Complete" value={allComplete} col="var(--bl)" sub="delivered" />
+              <Stat label="EWOs" value={allEwos} col="var(--am)" sub="extra work orders" />
+              <Stat label="Total Hrs Used" value={totalHrsUsed.toFixed(0) + 'h'} col={totalHrsAllowed > 0 && totalHrsUsed > totalHrsAllowed ? 'var(--rd)' : 'var(--gn)'} sub={'of ' + totalHrsAllowed.toFixed(0) + 'h allowed'} />
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1221,14 +1282,16 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                 {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <div style={{ flex: 1 }} />
-              <button onClick={() => openProjForm(null)} style={{
-                fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
-                textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
-                background: 'var(--3eg)', color: '#1a2030', border: 'none',
-                boxShadow: '0 2px 8px rgba(42,158,42,.3)'
-              }}>
-                + New Project
-              </button>
+              {role === 'manager' && (
+                <button onClick={() => openProjForm(null)} style={{
+                  fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                  textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                  background: 'var(--3eg)', color: '#1a2030', border: 'none',
+                  boxShadow: '0 2px 8px rgba(42,158,42,.3)'
+                }}>
+                  + New Project
+                </button>
+              )}
             </div>
 
             <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
@@ -1288,8 +1351,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
-                                <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>
-                                <IBtn onClick={() => confirmDelete('Delete project "' + p.projNum + ' — ' + p.name + '"?', () => { deleteProject(p).catch(() => undefined); })} danger title="Delete project">Del</IBtn>
+                                {role === 'manager' && <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>}
+                                {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete project "' + p.projNum + ' — ' + p.name + '"?', () => { deleteProject(p).catch(() => undefined); })} danger title="Delete project">Del</IBtn>}
                               </div>
                             </td>
                           </tr>
@@ -1313,8 +1376,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
-                                    <IBtn onClick={() => openProjForm(ewo)} title="Edit EWO">Edit</IBtn>
-                                    <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>
+                                    {role === 'manager' && <IBtn onClick={() => openProjForm(ewo)} title="Edit EWO">Edit</IBtn>}
+                                    {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>}
                                   </div>
                                 </td>
                               </tr>
@@ -1339,11 +1402,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
         {mod === 'rfis' && (
           <div className={styles.fade}>
             <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
-              <Stat label="Open" value={rfiOpen} col="var(--gn)" sub="RFIs" />
-              <Stat label="Overdue" value={rfiOverdue} col="var(--rd)" warn={rfiOverdue > 0} sub="RFIs" />
-              <Stat label="Closed" value={rfiClosed} col="var(--bl)" sub="RFIs" />
               <Stat label="Total RFIs" value={rfis.length} col="var(--pu)" sub="all projects" />
-              <Stat label="Impact Hours" value={rfiImpact.toFixed(1) + 'h'} col="var(--am)" sub="total EWO impact" />
+              <Stat label="Open" value={rfiOpen} col="var(--gn)" sub="awaiting response" />
+              <Stat label="Overdue" value={rfiOverdue} col="var(--rd)" warn={rfiOverdue > 0} sub="past due date" />
+              <Stat label="Partial" value={rfiPartial} col="var(--am)" sub="revise and resend" />
+              <Stat label="Closed" value={rfiClosed} col="var(--bl)" sub="resolved" />
+              <Stat label="Impact Hrs" value={rfiImpact.toFixed(1) + 'h'} col="var(--pu)" sub="total tracked" />
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1358,14 +1422,16 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                 <option value="Overdue">Overdue</option>
               </select>
               <div style={{ flex: 1 }} />
-              <button onClick={() => openRfiForm(null)} style={{
-                fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
-                textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
-                background: 'var(--3eg)', color: '#1a2030', border: 'none',
-                boxShadow: '0 2px 8px rgba(42,158,42,.3)'
-              }}>
-                + New RFI
-              </button>
+              {role === 'manager' && (
+                <button onClick={() => openRfiForm(null)} style={{
+                  fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                  textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                  background: 'var(--3eg)', color: '#1a2030', border: 'none',
+                  boxShadow: '0 2px 8px rgba(42,158,42,.3)'
+                }}>
+                  + New RFI
+                </button>
+              )}
             </div>
 
             {spLoading && (
@@ -1388,10 +1454,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                     <span style={{ fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t4)', marginLeft: 4 }}>— {projRfis.length} RFI{projRfis.length !== 1 ? 's' : ''}</span>
                     {proj ? <Tag s={proj.status} /> : null}
                     <div style={{ flex: 1 }} />
-                    <button onClick={e => { e.stopPropagation(); openRfiForm(null, proj); }}
-                      style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'var(--3eg3)', border: '1px solid var(--3eg)', color: 'var(--3eg)' }}>
-                      + RFI
-                    </button>
+                    {role === 'manager' && (
+                      <button onClick={e => { e.stopPropagation(); openRfiForm(null, proj); }}
+                        style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'var(--3eg3)', border: '1px solid var(--3eg)', color: 'var(--3eg)' }}>
+                        + RFI
+                      </button>
+                    )}
                   </div>
                   {groupExpanded && (
                     <div style={{ overflowX: 'auto' }}>
@@ -1431,8 +1499,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     <IBtn onClick={() => openRfiDetail(r, proj)} title="View RFI">View</IBtn>
-                                    <IBtn onClick={() => openRfiForm(r, proj)} title="Edit RFI">Edit</IBtn>
-                                    <IBtn onClick={() => confirmDelete('Delete RFI "' + r.rfiNum + '"?', () => { deleteRfi(r).catch(() => undefined); })} danger title="Delete RFI">Del</IBtn>
+                                    {role === 'manager' && <IBtn onClick={() => openRfiForm(r, proj)} title="Edit RFI">Edit</IBtn>}
+                                    {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete RFI "' + r.rfiNum + '"?', () => { deleteRfi(r).catch(() => undefined); })} danger title="Delete RFI">Del</IBtn>}
                                   </div>
                                 </td>
                               </tr>
@@ -1462,6 +1530,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
           <ProjDetail
             proj={panel.proj}
             rfis={rfis}
+            isManager={role === 'manager'}
             onEdit={() => setPanel({ type: 'projForm', proj: panel.proj })}
             onDelete={() => {
               const pRef = panel.proj!;
@@ -1507,6 +1576,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
           <RfiDetail
             rfi={panel.rfi}
             proj={panel.parentProj || projects.filter(p => p.id === panel.rfi!.projectId)[0]}
+            isManager={role === 'manager'}
             onEdit={() => setPanel({ type: 'rfiForm', rfi: panel.rfi, parentProj: panel.parentProj })}
             onDelete={() => {
               const rRef = panel.rfi!;

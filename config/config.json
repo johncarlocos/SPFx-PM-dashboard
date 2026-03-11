@@ -9,19 +9,10 @@
           "manifest": "./src/webparts/managerDashboard/ManagerDashboardWebPart.manifest.json"
         }
       ]
-    },
-    "staff-dashboard-web-part": {
-      "components": [
-        {
-          "entrypoint": "./lib/webparts/staffDashboard/StaffDashboardWebPart.js",
-          "manifest": "./src/webparts/staffDashboard/StaffDashboardWebPart.manifest.json"
-        }
-      ]
     }
   },
   "externals": {},
   "localizedResources": {
-    "ManagerDashboardWebPartStrings": "lib/webparts/managerDashboard/loc/{locale}.js",
-    "StaffDashboardWebPartStrings": "lib/webparts/staffDashboard/loc/{locale}.js"
+    "ManagerDashboardWebPartStrings": "lib/webparts/managerDashboard/loc/{locale}.js"
   }
 }

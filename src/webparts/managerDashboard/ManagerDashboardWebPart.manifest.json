@@ -18,11 +18,11 @@
   "preconfiguredEntries": [{
     "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
     "group": { "default": "Advanced" },
-    "title": { "default": "ManagerDashboard" },
-    "description": { "default": "ManagerDashboard description" },
-    "officeFabricIconFontName": "Page",
+    "title": { "default": "3Edge Dashboard" },
+    "description": { "default": "3 Edge Design Project & RFI Tracker — combined Manager and Staff view" },
+    "officeFabricIconFontName": "BIDashboard",
     "properties": {
-      "description": "ManagerDashboard"
+      "description": "3Edge Dashboard"
     }
   }]
 }

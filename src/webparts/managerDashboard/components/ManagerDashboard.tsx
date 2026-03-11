@@ -1021,9 +1021,27 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   const rfiClosed = rfis.filter(r => r.status === 'Closed').length;
   const rfiImpact = rfis.filter(r => r.impacted === 'Yes').reduce((s, r) => s + rfiTot(r), 0);
 
+  // ── Local-mode temp ID counter
+  const localIdRef = React.useRef(1);
+  const nextLocalId = (): number => { localIdRef.current -= 1; return localIdRef.current; };
+  const isLocal = (): boolean => spMode === 'local';
+
   // ── CRUD helpers
   const saveProject = async (d: IProject, isNew: boolean): Promise<void> => {
     try {
+      if (isLocal()) {
+        if (isNew) {
+          const tempId = nextLocalId();
+          const saved: IProject = { ...d, id: d.projNum || String(tempId) };
+          setProjects(prev => [...prev, saved]);
+          toast('Project created (local mode — will sync when SP lists are ready).');
+        } else {
+          setProjects(prev => prev.map(p => p.id === d.id ? { ...d } : p));
+          toast('Project saved (local mode).');
+        }
+        setPanel({ type: null });
+        return;
+      }
       if (isNew) {
         const spId = await spService.current.addProject(d);
         const saved: IProject = { ...d, id: d.projNum || String(spId), spId };
@@ -1043,7 +1061,13 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   };
 
   const deleteProject = async (proj: IProject): Promise<void> => {
-    if (!proj.spId) { setProjects(prev => prev.filter(p => p.id !== proj.id)); return; }
+    if (isLocal() || !proj.spId) {
+      setProjects(prev => prev.filter(p => p.id !== proj.id));
+      setPanel({ type: null });
+      setDel({ open: false, label: '', onConfirm: () => undefined });
+      toast('Project deleted' + (isLocal() ? ' (local mode).' : '.'));
+      return;
+    }
     try {
       await spService.current.deleteProject(proj.spId);
       setProjects(prev => prev.filter(p => p.id !== proj.id));
@@ -1058,6 +1082,19 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
   const saveRfi = async (d: IRfi, isNew: boolean): Promise<void> => {
     try {
+      if (isLocal()) {
+        if (isNew) {
+          const tempId = nextLocalId();
+          const saved: IRfi = { ...d, id: d.rfiNum || String(tempId) };
+          setRfis(prev => [...prev, saved]);
+          toast('RFI created (local mode — will sync when SP lists are ready).');
+        } else {
+          setRfis(prev => prev.map(r => r.id === d.id ? { ...d } : r));
+          toast('RFI saved (local mode).');
+        }
+        setPanel({ type: null });
+        return;
+      }
       if (isNew) {
         const spId = await spService.current.addRfi(d);
         const saved: IRfi = { ...d, id: d.rfiNum || String(spId), spId };
@@ -1077,7 +1114,13 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   };
 
   const deleteRfi = async (rfi: IRfi): Promise<void> => {
-    if (!rfi.spId) { setRfis(prev => prev.filter(r => r.id !== rfi.id)); return; }
+    if (isLocal() || !rfi.spId) {
+      setRfis(prev => prev.filter(r => r.id !== rfi.id));
+      setPanel({ type: null });
+      setDel({ open: false, label: '', onConfirm: () => undefined });
+      toast('RFI deleted' + (isLocal() ? ' (local mode).' : '.'));
+      return;
+    }
     try {
       await spService.current.deleteRfi(rfi.spId);
       setRfis(prev => prev.filter(r => r.id !== rfi.id));

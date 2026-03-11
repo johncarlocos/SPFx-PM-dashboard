@@ -8,8 +8,12 @@ export class SharePointService {
   private _dig: string | null = null;
   private _digExp: number = 0;
 
-  constructor(siteUrl: string) {
+  constructor(siteUrl: string, initialDigest?: string) {
     this._siteUrl = siteUrl;
+    if (initialDigest) {
+      this._dig = initialDigest;
+      this._digExp = Date.now() + 25 * 60 * 1000; // assume 25 min validity
+    }
   }
 
   private async getDigest(): Promise<string> {
@@ -95,11 +99,6 @@ export class SharePointService {
     if (!r.ok && r.status !== 404) throw new Error('DELETE HTTP ' + r.status);
   }
 
-  private async getListType(listName: string): Promise<string> {
-    const meta = await this.spGet(`/_api/web/lists/getbytitle('${listName}')?$select=ListItemEntityTypeFullName`);
-    return meta.ListItemEntityTypeFullName;
-  }
-
   // ── Project CRUD ──────────────────────────────────────────
 
   public async loadProjects(): Promise<IProject[]> {
@@ -132,9 +131,8 @@ export class SharePointService {
     }));
   }
 
-  private pBody(d: IProject, type: string): any {
+  private pBody(d: IProject): any {
     return {
-      __metadata: { type },
       Title: d.projNum || '',
       projNum: d.projNum || '',
       name: d.name || '',
@@ -161,15 +159,13 @@ export class SharePointService {
   }
 
   public async addProject(d: IProject): Promise<number> {
-    const t = await this.getListType(LIST_PROJ);
-    const r = await this.spPost(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items`, this.pBody(d, t));
+    const r = await this.spPost(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items`, this.pBody(d));
     if (!r || !r.Id) throw new Error('No Id returned');
     return r.Id;
   }
 
   public async updateProject(spId: number, d: IProject): Promise<void> {
-    const t = await this.getListType(LIST_PROJ);
-    await this.spMerge(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items(${spId})`, this.pBody(d, t));
+    await this.spMerge(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items(${spId})`, this.pBody(d));
   }
 
   public async deleteProject(spId: number): Promise<void> {
@@ -219,9 +215,8 @@ export class SharePointService {
     }));
   }
 
-  private rBody(d: IRfi, type: string): any {
+  private rBody(d: IRfi): any {
     return {
-      __metadata: { type },
       Title: d.rfiNum || '',
       rfiNum: d.rfiNum || '',
       rfiSeq: Number(d.rfiSeq) || 0,
@@ -259,15 +254,13 @@ export class SharePointService {
   }
 
   public async addRfi(d: IRfi): Promise<number> {
-    const t = await this.getListType(LIST_RFI);
-    const r = await this.spPost(`/_api/web/lists/getbytitle('${LIST_RFI}')/items`, this.rBody(d, t));
+    const r = await this.spPost(`/_api/web/lists/getbytitle('${LIST_RFI}')/items`, this.rBody(d));
     if (!r || !r.Id) throw new Error('No Id returned');
     return r.Id;
   }
 
   public async updateRfi(spId: number, d: IRfi): Promise<void> {
-    const t = await this.getListType(LIST_RFI);
-    await this.spMerge(`/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})`, this.rBody(d, t));
+    await this.spMerge(`/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})`, this.rBody(d));
   }
 
   public async deleteRfi(spId: number): Promise<void> {

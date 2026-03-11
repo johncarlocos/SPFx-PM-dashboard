@@ -856,7 +856,7 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
-  const spService = React.useRef(new SharePointService(props.siteUrl));
+  const spService = React.useRef(new SharePointService(props.siteUrl, props.formDigest));
   const { show: toast, Toast } = useToast();
 
   // ── Data

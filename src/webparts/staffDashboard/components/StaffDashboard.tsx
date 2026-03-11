@@ -75,8 +75,8 @@ const DRow: React.FC<{ label: string; value?: string | number | null }> = ({ lab
 );
 
 // ── Main Component ───────────────────────────────────────────────────────────
-const StaffDashboard: React.FC<IStaffDashboardProps> = ({ siteUrl, userDisplayName }) => {
-  const svc = React.useMemo(() => new SharePointService(siteUrl), [siteUrl]);
+const StaffDashboard: React.FC<IStaffDashboardProps> = ({ siteUrl, userDisplayName, formDigest }) => {
+  const svc = React.useMemo(() => new SharePointService(siteUrl, formDigest), [siteUrl]);
   const { show: showToast, Toast } = useToast();
 
   // ── State ──────────────────────────────────────────────────────────────────

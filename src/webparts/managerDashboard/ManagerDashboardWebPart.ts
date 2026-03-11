@@ -21,7 +21,8 @@ export default class ManagerDashboardWebPart extends BaseClientSideWebPart<IMana
       ManagerDashboard,
       {
         siteUrl: this.context.pageContext.web.absoluteUrl,
-        userDisplayName: this.context.pageContext.user.displayName
+        userDisplayName: this.context.pageContext.user.displayName,
+        formDigest: (this.context.pageContext as any).legacyPageContext?.formDigestValue || ''
       }
     );
 

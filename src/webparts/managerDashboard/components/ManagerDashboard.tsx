@@ -1,0 +1,1564 @@
+import * as React from 'react';
+import {
+  Tag, HrsBar, RfiBar, Stat, Panel, FF, IBtn, DelModal, useToast,
+  BtnPrimary, SDiv, CcField, fmtD, rfiTot, effSt, isOD
+} from '../../../shared/components/SharedComponents';
+import { IProject, IRfi, PROJ_STATUSES, RFI_STATUSES, RFI_TYPES, RFI_RESPONSES } from '../../../shared/models/IProject';
+import { SharePointService } from '../../../shared/services/SharePointService';
+import styles from './ManagerDashboard.module.scss';
+import type { IManagerDashboardProps } from './IManagerDashboardProps';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const window: Window & { XLSX: any; jspdf: any };
+
+// ── Image placeholders (replace with actual base64 data URIs) ─────────────────
+const IMG_LOGO_DASH = '';
+// IMG_HEADER and IMG_LOGO_PDF reserved for PDF generation
+const IMG_LOGO_PDF = '';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Mod = 'projects' | 'rfis';
+type SDir = 'asc' | 'desc';
+
+interface PanelState {
+  type: 'projDetail' | 'projForm' | 'rfiDetail' | 'rfiForm' | null;
+  proj?: IProject | null;
+  rfi?: IRfi | null;
+  parentProj?: IProject | null;
+}
+
+interface DelState {
+  open: boolean;
+  label: string;
+  onConfirm: () => void;
+}
+
+// ── Empty factories ────────────────────────────────────────────────────────────
+const emptyProj = (): IProject => ({
+  id: '', spId: undefined, projNum: '', name: '', status: 'Active', year: new Date().getFullYear(),
+  hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
+  email: '', mobile: '', clientNum: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
+  detailers: '', isEwo: false, ewoNum: '', parentId: null
+});
+
+const emptyRfi = (): IRfi => ({
+  id: '', spId: undefined, rfiNum: '', rfiSeq: 0, projectId: '', projectName: '',
+  rfiType: RFI_TYPES[0], status: 'Open', submittedTo: '', toCompany: '', by: '', byCompany: '',
+  cc: '', dateIssued: new Date().toISOString().substring(0, 10), dateRequired: '',
+  description: '', attachments: '', clientRfi: '', dateReceived: '', response: 'Pending',
+  responseDesc: '', sentBy: '', sentByCompany: '', impacted: 'No', ewoRef: '', ewoCcn: '',
+  tracked: false, model: 0, connections: 0, checking: 0, drawings: 0, admin: 0,
+  revision: 'A', email: ''
+});
+
+// ── Inline style helpers ───────────────────────────────────────────────────────
+const inp: React.CSSProperties = {
+  fontFamily: 'Montserrat', fontSize: 13, padding: '8px 12px',
+  border: '1px solid var(--bd)', borderRadius: 2,
+  background: 'var(--s2)', color: 'var(--t1)', width: '100%', outline: 'none'
+};
+const selStyle: React.CSSProperties = { ...inp, cursor: 'pointer' };
+
+// ── PDF Generator ─────────────────────────────────────────────────────────────
+function generateRfiPdf(rfi: IRfi, proj: IProject | undefined): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jsPDF = (window.jspdf as any).jsPDF;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: any = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = 210; const ph = 297;
+    const ml = 15; const mr = 15; const tw = pw - ml - mr;
+    let y = 34;
+
+    // Header background
+    doc.setFillColor(17, 20, 24);
+    doc.rect(0, 0, pw, 28, 'F');
+
+    // Logo text
+    doc.setTextColor(42, 158, 42);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('3 EDGE DESIGN', ml, 12);
+    doc.setFontSize(8);
+    doc.setTextColor(138, 155, 176);
+    doc.text('STRUCTURAL STEEL DETAILING', ml, 17);
+
+    // RFI title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REQUEST FOR INFORMATION', pw - mr, 11, { align: 'right' });
+    doc.setFontSize(11);
+    doc.setTextColor(42, 158, 42);
+    doc.text(rfi.rfiNum, pw - mr, 18, { align: 'right' });
+    doc.setTextColor(138, 155, 176);
+    doc.setFontSize(8);
+    doc.text('Revision: ' + (rfi.revision || 'A'), pw - mr, 23, { align: 'right' });
+
+    if (IMG_LOGO_PDF) {
+      doc.addImage(IMG_LOGO_PDF, 'PNG', pw - 45, 4, 28, 18);
+    }
+
+    // Helper: section header
+    const sectionHeader = (title: string): void => {
+      doc.setFillColor(240, 242, 245);
+      doc.rect(ml, y, tw, 7, 'F');
+      doc.setDrawColor(208, 213, 222);
+      doc.rect(ml, y, tw, 7, 'S');
+      doc.setFillColor(42, 158, 42);
+      doc.rect(ml, y, 3, 7, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 32, 48);
+      doc.text(title, ml + 5, y + 4.5);
+      y += 9;
+    };
+
+    // Helper: two-col row
+    const row2 = (l1: string, v1: string, l2: string, v2: string): void => {
+      const cw = tw / 2;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(l1.toUpperCase(), ml, y + 3.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(26, 32, 48);
+      doc.text(String(v1 || '—'), ml + 28, y + 3.5, { maxWidth: cw - 30 });
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(l2.toUpperCase(), ml + cw, y + 3.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(26, 32, 48);
+      doc.text(String(v2 || '—'), ml + cw + 28, y + 3.5, { maxWidth: cw - 30 });
+      doc.setDrawColor(208, 213, 222);
+      doc.line(ml, y + 6, ml + tw, y + 6);
+      y += 7;
+    };
+
+    // Helper: full-width row
+    const row1 = (label: string, value: string, bold?: boolean): void => {
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(label.toUpperCase(), ml, y + 3.5);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(bold ? 42 : 26, bold ? 158 : 32, bold ? 42 : 48);
+      doc.text(String(value || '—'), ml + 40, y + 3.5, { maxWidth: tw - 42 });
+      doc.setDrawColor(208, 213, 222);
+      doc.line(ml, y + 6, ml + tw, y + 6);
+      y += 7;
+    };
+
+    // Helper: text block
+    const textBlock = (label: string, value: string): void => {
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(label.toUpperCase(), ml, y + 3.5);
+      y += 6;
+      if (value) {
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 48);
+        doc.setFontSize(8);
+        const lines = doc.splitTextToSize(value, tw);
+        doc.text(lines, ml, y + 4);
+        y += lines.length * 5 + 2;
+      } else {
+        y += 4;
+      }
+      doc.setDrawColor(208, 213, 222);
+      doc.line(ml, y, ml + tw, y);
+      y += 3;
+    };
+
+    // Part A
+    sectionHeader('PART A — REQUEST INFORMATION');
+    row2('Project #', proj ? proj.projNum : rfi.projectId, 'Project Name', proj ? proj.name : rfi.projectName);
+    row2('RFI Number', rfi.rfiNum, 'RFI Type', rfi.rfiType);
+    row2('Date Issued', fmtD(rfi.dateIssued), 'Date Required', fmtD(rfi.dateRequired));
+    row2('Submitted To', rfi.submittedTo, 'To Company', rfi.toCompany);
+    row2('Prepared By', rfi.by, 'Company', rfi.byCompany);
+    if (rfi.cc) row1('CC', rfi.cc);
+    y += 3;
+
+    // Part B
+    sectionHeader('PART B — DESCRIPTION');
+    textBlock('Description', rfi.description);
+    if (rfi.attachments) row1('Attachments', rfi.attachments);
+    y += 3;
+
+    // Parts C & D
+    sectionHeader('PARTS C & D — CLIENT RESPONSE');
+    row2('Client RFI #', rfi.clientRfi, 'Date Received', fmtD(rfi.dateReceived));
+    row2('Response', rfi.response, 'Status', rfi.status);
+    row2('Sent By', rfi.sentBy, 'Sent By Company', rfi.sentByCompany);
+    if (rfi.responseDesc) textBlock('Response Details', rfi.responseDesc);
+    y += 3;
+
+    // Part E
+    sectionHeader('PART E — IMPACT ASSESSMENT');
+    row2('Schedule Impact', rfi.impacted, 'EWO Reference', rfi.ewoRef || '—');
+    if (rfi.impacted === 'Yes') {
+      const total = (rfi.model || 0) + (rfi.connections || 0) + (rfi.checking || 0) + (rfi.drawings || 0) + (rfi.admin || 0);
+      row2('Model Hrs', String(rfi.model || 0), 'Connections Hrs', String(rfi.connections || 0));
+      row2('Checking Hrs', String(rfi.checking || 0), 'Drawings Hrs', String(rfi.drawings || 0));
+      row2('Admin Hrs', String(rfi.admin || 0), 'Total Impact Hrs', String(total));
+    }
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(138, 155, 176);
+    doc.text('Generated by 3 Edge Design Project Tracker  •  ' + new Date().toLocaleDateString('en-AU'), ml, ph - 8);
+    doc.text('Page 1 of 1', pw - mr, ph - 8, { align: 'right' });
+
+    doc.save('RFI_' + rfi.rfiNum.replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf');
+  } catch (e) {
+    console.error('PDF generation error:', e);
+    alert('PDF generation failed. Please ensure jsPDF is loaded.');
+  }
+}
+
+// ── Project Form ───────────────────────────────────────────────────────────────
+interface ProjFormProps {
+  initial: IProject;
+  isNew: boolean;
+  projects: IProject[];
+  onSave: (p: IProject) => void;
+  onCancel: () => void;
+}
+
+const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
+  const [d, setD] = React.useState<IProject>({ ...initial });
+
+  const set = <K extends keyof IProject>(k: K, v: IProject[K]): void => {
+    setD(prev => ({ ...prev, [k]: v }));
+  };
+
+  const parentProjects = projects.filter(p => !p.isEwo && p.id !== d.id);
+
+  return (
+    <div>
+      <SDiv label={d.isEwo ? 'EWO (Extra Work Order) Details' : 'Project Details'} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Project #">
+          <input style={inp} value={d.projNum} onChange={e => set('projNum', e.target.value)} placeholder="e.g. 2601" />
+        </FF>
+        <FF label="Quote #">
+          <input style={inp} value={d.quoteNum} onChange={e => set('quoteNum', e.target.value)} placeholder="e.g. Q2601" />
+        </FF>
+        <FF label="Project Name" span2>
+          <input style={inp} value={d.name} onChange={e => set('name', e.target.value)} placeholder="Project name" />
+        </FF>
+        <FF label="Company">
+          <input style={inp} value={d.company} onChange={e => set('company', e.target.value)} />
+        </FF>
+        <FF label="Contact">
+          <input style={inp} value={d.contact} onChange={e => set('contact', e.target.value)} />
+        </FF>
+        <FF label="Email">
+          <input style={inp} type="email" value={d.email} onChange={e => set('email', e.target.value)} />
+        </FF>
+        <FF label="Mobile">
+          <input style={inp} value={d.mobile} onChange={e => set('mobile', e.target.value)} />
+        </FF>
+        <FF label="Client Ref #">
+          <input style={inp} value={d.clientNum} onChange={e => set('clientNum', e.target.value)} />
+        </FF>
+        <FF label="Status">
+          <select style={selStyle} value={d.status} onChange={e => set('status', e.target.value)}>
+            {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </FF>
+        <FF label="Year">
+          <input style={inp} type="number" value={d.year} onChange={e => set('year', Number(e.target.value))} />
+        </FF>
+        <FF label="Detailers" span2>
+          <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated detailer names" />
+        </FF>
+      </div>
+
+      <SDiv label="Dates" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Start Date">
+          <input style={inp} type="date" value={d.startDate} onChange={e => set('startDate', e.target.value)} />
+        </FF>
+        <FF label="Finish Date">
+          <input style={inp} type="date" value={d.finishDate} onChange={e => set('finishDate', e.target.value)} />
+        </FF>
+        <FF label="IFA Date">
+          <input style={inp} type="date" value={d.ifaDate} onChange={e => set('ifaDate', e.target.value)} />
+        </FF>
+        <FF label="IFC Date">
+          <input style={inp} type="date" value={d.ifcDate} onChange={e => set('ifcDate', e.target.value)} />
+        </FF>
+      </div>
+
+      <SDiv label="Hours & RFIs" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Hours Allowed">
+          <input style={inp} type="number" step="0.5" value={d.hrsAllowed} onChange={e => set('hrsAllowed', Number(e.target.value))} />
+        </FF>
+        <FF label="Hours Used">
+          <input style={inp} type="number" step="0.5" value={d.hrsUsed} onChange={e => set('hrsUsed', Number(e.target.value))} />
+        </FF>
+        <FF label="RFIs Allowed">
+          <input style={inp} type="number" value={d.rfisAllowed} onChange={e => set('rfisAllowed', Number(e.target.value))} />
+        </FF>
+      </div>
+
+      <SDiv label="EWO (Extra Work Order)" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Is EWO?">
+          <select style={selStyle} value={d.isEwo ? 'yes' : 'no'} onChange={e => set('isEwo', e.target.value === 'yes')}>
+            <option value="no">No — Standard Project</option>
+            <option value="yes">Yes — Extra Work Order</option>
+          </select>
+        </FF>
+        {d.isEwo && (
+          <FF label="EWO Number">
+            <input style={inp} value={d.ewoNum} onChange={e => set('ewoNum', e.target.value)} placeholder="EWO-001" />
+          </FF>
+        )}
+        {d.isEwo && (
+          <FF label="Parent Project" span2>
+            <select style={selStyle} value={d.parentId || ''} onChange={e => set('parentId', e.target.value || null)}>
+              <option value="">— Select parent project —</option>
+              {parentProjects.map(p => (
+                <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>
+              ))}
+            </select>
+          </FF>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
+        <BtnPrimary onClick={() => onSave(d)}>{isNew ? 'CREATE PROJECT' : 'SAVE CHANGES'}</BtnPrimary>
+        <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+      </div>
+    </div>
+  );
+};
+
+// ── Project Detail ─────────────────────────────────────────────────────────────
+interface ProjDetailProps {
+  proj: IProject;
+  rfis: IRfi[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onNewRfi: () => void;
+  onViewRfi: (r: IRfi) => void;
+}
+
+const ProjDetail: React.FC<ProjDetailProps> = ({ proj, rfis, onEdit, onDelete, onNewRfi, onViewRfi }) => {
+  const projRfis = rfis.filter(r => r.projectId === proj.id);
+  const open = projRfis.filter(r => effSt(r) === 'Open' || effSt(r) === 'Partially Open (Revise and Resend)').length;
+  const overdue = projRfis.filter(r => isOD(r)).length;
+
+  const rowItem = (label: string, value: string | number | boolean | null | undefined, highlight?: boolean): JSX.Element => {
+    const v = (value === null || value === undefined || value === '') ? '—' : String(value);
+    return (
+      <div style={{ display: 'flex', padding: '9px 0', borderBottom: '1px solid var(--bd)', gap: 12 }}>
+        <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', minWidth: 130, flexShrink: 0 }}>{label}</span>
+        <span style={{ fontFamily: 'Montserrat', fontWeight: highlight ? 700 : 500, fontSize: 13, color: highlight ? 'var(--3eg)' : 'var(--t1)' }}>{v}</span>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+        <IBtn onClick={onEdit} title="Edit project">Edit</IBtn>
+        <IBtn onClick={onNewRfi} title="Create RFI for this project">+ New RFI</IBtn>
+        <IBtn onClick={onDelete} danger title="Delete project">Delete</IBtn>
+      </div>
+
+      <SDiv label="Overview" />
+      {rowItem('Project #', proj.projNum, true)}
+      {rowItem('Quote #', proj.quoteNum)}
+      {rowItem('Name', proj.name)}
+      {rowItem('Company', proj.company)}
+      {rowItem('Contact', proj.contact)}
+      {rowItem('Email', proj.email)}
+      {rowItem('Mobile', proj.mobile)}
+      {rowItem('Client Ref', proj.clientNum)}
+      {rowItem('Status', proj.status)}
+      {rowItem('Year', proj.year)}
+      {rowItem('Detailers', proj.detailers)}
+
+      <SDiv label="Dates" />
+      {rowItem('Start Date', fmtD(proj.startDate))}
+      {rowItem('Finish Date', fmtD(proj.finishDate))}
+      {rowItem('IFA Date', fmtD(proj.ifaDate))}
+      {rowItem('IFC Date', fmtD(proj.ifcDate))}
+
+      <SDiv label="Hours" />
+      <div style={{ marginBottom: 12 }}>
+        <HrsBar allowed={proj.hrsAllowed} used={proj.hrsUsed} />
+      </div>
+      {rowItem('Hours Allowed', proj.hrsAllowed)}
+      {rowItem('Hours Used', proj.hrsUsed)}
+
+      {proj.isEwo && (
+        <React.Fragment>
+          <SDiv label="EWO Details" />
+          {rowItem('EWO Number', proj.ewoNum)}
+          {rowItem('Parent Project', proj.parentId || '—')}
+        </React.Fragment>
+      )}
+
+      <SDiv label={'RFIs (' + projRfis.length + ')'} />
+      {projRfis.length === 0
+        ? <div style={{ fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)', padding: '10px 0' }}>No RFIs for this project.</div>
+        : (
+          <div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+              <span style={{ fontFamily: 'Montserrat', fontSize: 12, fontWeight: 600, color: 'var(--t3)' }}>
+                Total: {projRfis.length} &nbsp;|&nbsp;
+                Open: <span style={{ color: open > 0 ? 'var(--am)' : 'var(--t3)' }}>{open}</span> &nbsp;|&nbsp;
+                Overdue: <span style={{ color: overdue > 0 ? 'var(--rd)' : 'var(--t3)' }}>{overdue}</span>
+              </span>
+            </div>
+            {projRfis.map(r => (
+              <div key={r.id} onClick={() => onViewRfi(r)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 6, background: 'var(--s2)', marginBottom: 6, cursor: 'pointer', border: '1px solid var(--bd)' }}>
+                <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--t1)', minWidth: 80 }}>{r.rfiNum}</span>
+                <span style={{ fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.rfiType}</span>
+                <Tag s={effSt(r)} />
+              </div>
+            ))}
+          </div>
+        )}
+    </div>
+  );
+};
+
+// ── RFI Form ───────────────────────────────────────────────────────────────────
+interface RfiFormProps {
+  initial: IRfi;
+  isNew: boolean;
+  projects: IProject[];
+  onSave: (r: IRfi) => void;
+  onCancel: () => void;
+}
+
+const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
+  const [d, setD] = React.useState<IRfi>({ ...initial });
+
+  const set = <K extends keyof IRfi>(k: K, v: IRfi[K]): void => {
+    setD(prev => ({ ...prev, [k]: v }));
+  };
+
+  const onProjectChange = (projId: string): void => {
+    const p = projects.find(x => x.id === projId);
+    setD(prev => ({ ...prev, projectId: projId, projectName: p ? p.name : '' }));
+  };
+
+  const totalImpact = (d.model || 0) + (d.connections || 0) + (d.checking || 0) + (d.drawings || 0) + (d.admin || 0);
+
+  return (
+    <div>
+      {/* Part A */}
+      <SDiv label="Part A — Request Information" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Project" span2>
+          <select style={selStyle} value={d.projectId} onChange={e => onProjectChange(e.target.value)}>
+            <option value="">— Select project —</option>
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>
+            ))}
+          </select>
+        </FF>
+        <FF label="RFI Number">
+          <input style={inp} value={d.rfiNum} onChange={e => set('rfiNum', e.target.value)} placeholder="e.g. 2601-RFI-001" />
+        </FF>
+        <FF label="RFI Type">
+          <select style={selStyle} value={d.rfiType} onChange={e => set('rfiType', e.target.value)}>
+            {RFI_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </FF>
+        <FF label="Revision">
+          <input style={inp} value={d.revision || 'A'} onChange={e => set('revision', e.target.value)} placeholder="A" />
+        </FF>
+        <FF label="Status">
+          <select style={selStyle} value={d.status} onChange={e => set('status', e.target.value)}>
+            {RFI_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </FF>
+        <FF label="Date Issued">
+          <input style={inp} type="date" value={d.dateIssued} onChange={e => set('dateIssued', e.target.value)} />
+        </FF>
+        <FF label="Date Required">
+          <input style={inp} type="date" value={d.dateRequired} onChange={e => set('dateRequired', e.target.value)} />
+        </FF>
+        <FF label="Submitted To">
+          <input style={inp} value={d.submittedTo} onChange={e => set('submittedTo', e.target.value)} />
+        </FF>
+        <FF label="To Company">
+          <input style={inp} value={d.toCompany} onChange={e => set('toCompany', e.target.value)} />
+        </FF>
+        <FF label="Prepared By">
+          <input style={inp} value={d.by} onChange={e => set('by', e.target.value)} />
+        </FF>
+        <FF label="By Company">
+          <input style={inp} value={d.byCompany} onChange={e => set('byCompany', e.target.value)} />
+        </FF>
+        <FF label="Email">
+          <input style={inp} type="email" value={d.email || ''} onChange={e => set('email', e.target.value)} />
+        </FF>
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <CcField value={d.cc} onChange={v => set('cc', v)} />
+      </div>
+
+      {/* Part B */}
+      <SDiv label="Part B — Description" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
+        <FF label="Description">
+          <textarea style={{ ...inp, minHeight: 100 }} value={d.description} onChange={e => set('description', e.target.value)} />
+        </FF>
+        <FF label="Attachments">
+          <input style={inp} value={d.attachments || ''} onChange={e => set('attachments', e.target.value)} placeholder="List attachment names, comma-separated" />
+        </FF>
+      </div>
+
+      {/* Parts C & D */}
+      <SDiv label="Parts C & D — Client Response" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Client RFI #">
+          <input style={inp} value={d.clientRfi} onChange={e => set('clientRfi', e.target.value)} />
+        </FF>
+        <FF label="Date Received">
+          <input style={inp} type="date" value={d.dateReceived} onChange={e => set('dateReceived', e.target.value)} />
+        </FF>
+        <FF label="Response">
+          <select style={selStyle} value={d.response} onChange={e => set('response', e.target.value)}>
+            {RFI_RESPONSES.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </FF>
+        <FF label="RFI Status">
+          <select style={selStyle} value={d.status} onChange={e => set('status', e.target.value)}>
+            {RFI_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </FF>
+        <FF label="Sent By">
+          <input style={inp} value={d.sentBy} onChange={e => set('sentBy', e.target.value)} />
+        </FF>
+        <FF label="Sent By Company">
+          <input style={inp} value={d.sentByCompany} onChange={e => set('sentByCompany', e.target.value)} />
+        </FF>
+        <FF label="Response Description" span2>
+          <textarea style={{ ...inp, minHeight: 80 }} value={d.responseDesc || ''} onChange={e => set('responseDesc', e.target.value)} />
+        </FF>
+      </div>
+
+      {/* Part E */}
+      <SDiv label="Part E — Impact Assessment" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Schedule Impacted?">
+          <select style={selStyle} value={d.impacted} onChange={e => set('impacted', e.target.value)}>
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </FF>
+        <FF label="EWO Reference">
+          <input style={inp} value={d.ewoRef || ''} onChange={e => set('ewoRef', e.target.value)} />
+        </FF>
+        {d.impacted === 'Yes' && (
+          <React.Fragment>
+            <FF label="Model Hours">
+              <input style={inp} type="number" step="0.5" value={d.model} onChange={e => set('model', Number(e.target.value))} />
+            </FF>
+            <FF label="Connections Hours">
+              <input style={inp} type="number" step="0.5" value={d.connections} onChange={e => set('connections', Number(e.target.value))} />
+            </FF>
+            <FF label="Checking Hours">
+              <input style={inp} type="number" step="0.5" value={d.checking} onChange={e => set('checking', Number(e.target.value))} />
+            </FF>
+            <FF label="Drawings Hours">
+              <input style={inp} type="number" step="0.5" value={d.drawings} onChange={e => set('drawings', Number(e.target.value))} />
+            </FF>
+            <FF label="Admin Hours">
+              <input style={inp} type="number" step="0.5" value={d.admin} onChange={e => set('admin', Number(e.target.value))} />
+            </FF>
+            <FF label="Total Impact Hours">
+              <div style={{ padding: '9px 12px', background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 2, fontFamily: 'Montserrat', fontWeight: 700, fontSize: 14, color: 'var(--3eg)' }}>
+                {totalImpact.toFixed(1)}h
+              </div>
+            </FF>
+          </React.Fragment>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
+        <BtnPrimary onClick={() => onSave(d)}>{isNew ? 'CREATE RFI' : 'SAVE CHANGES'}</BtnPrimary>
+        <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+      </div>
+    </div>
+  );
+};
+
+// ── RFI Detail ─────────────────────────────────────────────────────────────────
+interface RfiDetailProps {
+  rfi: IRfi;
+  proj: IProject | undefined;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, onEdit, onDelete }) => {
+  const total = rfiTot(rfi);
+  const st = effSt(rfi);
+
+  const row = (label: string, value: string | number | boolean | null | undefined, highlight?: boolean): JSX.Element => {
+    const v = (value === null || value === undefined || value === '') ? '—' : String(value);
+    return (
+      <div style={{ display: 'flex', padding: '9px 0', borderBottom: '1px solid var(--bd)', gap: 12 }}>
+        <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', minWidth: 130, flexShrink: 0 }}>{label}</span>
+        <span style={{ fontFamily: 'Montserrat', fontWeight: highlight ? 700 : 500, fontSize: 13, color: highlight ? 'var(--3eg)' : 'var(--t1)', wordBreak: 'break-word' }}>{v}</span>
+      </div>
+    );
+  };
+
+  const handleSendToClient = (): void => {
+    generateRfiPdf(rfi, proj);
+    const recipients = rfi.email || '';
+    const cc = rfi.cc || '';
+    const subject = encodeURIComponent('RFI ' + rfi.rfiNum + ' — ' + (proj ? proj.name : rfi.projectName));
+    const body = encodeURIComponent(
+      'Dear ' + (rfi.submittedTo || 'Client') + ',\n\n' +
+      'Please find attached RFI ' + rfi.rfiNum + ' for your review and response.\n\n' +
+      'Project: ' + (proj ? proj.name : rfi.projectName) + '\n' +
+      'RFI Type: ' + rfi.rfiType + '\n' +
+      'Date Issued: ' + fmtD(rfi.dateIssued) + '\n' +
+      'Date Required: ' + fmtD(rfi.dateRequired) + '\n\n' +
+      'Description:\n' + rfi.description + '\n\n' +
+      'Please respond by ' + fmtD(rfi.dateRequired) + '.\n\n' +
+      'Kind regards,\n' + (rfi.by || '') + '\n3 Edge Design'
+    );
+    const ccPart = cc ? 'cc=' + encodeURIComponent(cc) + '&' : '';
+    const mailto = 'mailto:' + recipients + '?' + ccPart + 'subject=' + subject + '&body=' + body;
+    window.open(mailto, '_blank');
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+        <IBtn onClick={onEdit} title="Edit RFI">Edit</IBtn>
+        <button onClick={handleSendToClient} style={{
+          fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, letterSpacing: '.06em',
+          textTransform: 'uppercase', padding: '5px 14px', borderRadius: 5, cursor: 'pointer',
+          background: 'var(--3eg3)', border: '1px solid var(--3eg)', color: 'var(--3eg)',
+          display: 'flex', alignItems: 'center', gap: 6
+        }}>
+          Send to Client
+        </button>
+        <IBtn onClick={onDelete} danger title="Delete RFI">Delete</IBtn>
+      </div>
+
+      <SDiv label="Part A — Request Information" />
+      {row('Project', proj ? (proj.projNum + ' — ' + proj.name) : rfi.projectName, true)}
+      {row('RFI Number', rfi.rfiNum, true)}
+      {row('RFI Type', rfi.rfiType)}
+      {row('Revision', rfi.revision || 'A')}
+      {row('Status', st)}
+      {row('Date Issued', fmtD(rfi.dateIssued))}
+      {row('Date Required', fmtD(rfi.dateRequired))}
+      {row('Submitted To', rfi.submittedTo)}
+      {row('To Company', rfi.toCompany)}
+      {row('Prepared By', rfi.by)}
+      {row('By Company', rfi.byCompany)}
+      {rfi.email ? row('Email', rfi.email) : null}
+      {rfi.cc ? row('CC', rfi.cc) : null}
+
+      <SDiv label="Part B — Description" />
+      <div style={{ padding: '12px 0', borderBottom: '1px solid var(--bd)' }}>
+        <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Description</div>
+        <div style={{ fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t1)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{rfi.description || '—'}</div>
+      </div>
+      {rfi.attachments ? row('Attachments', rfi.attachments) : null}
+
+      <SDiv label="Parts C & D — Client Response" />
+      {row('Client RFI #', rfi.clientRfi)}
+      {row('Date Received', fmtD(rfi.dateReceived))}
+      {row('Response', rfi.response)}
+      {row('Sent By', rfi.sentBy)}
+      {row('Sent By Company', rfi.sentByCompany)}
+      {rfi.responseDesc ? (
+        <div style={{ padding: '12px 0', borderBottom: '1px solid var(--bd)' }}>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Response Details</div>
+          <div style={{ fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t1)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{rfi.responseDesc}</div>
+        </div>
+      ) : null}
+
+      <SDiv label="Part E — Impact Assessment" />
+      {row('Schedule Impacted', rfi.impacted)}
+      {rfi.ewoRef ? row('EWO Reference', rfi.ewoRef) : null}
+      {rfi.impacted === 'Yes' ? (
+        <React.Fragment>
+          {row('Model Hours', rfi.model)}
+          {row('Connections Hours', rfi.connections)}
+          {row('Checking Hours', rfi.checking)}
+          {row('Drawings Hours', rfi.drawings)}
+          {row('Admin Hours', rfi.admin)}
+          {row('Total Impact Hours', total.toFixed(1) + 'h', true)}
+        </React.Fragment>
+      ) : null}
+    </div>
+  );
+};
+
+// ── Time Doctor Import Modal ───────────────────────────────────────────────────
+interface TdImportModalProps {
+  projects: IProject[];
+  onClose: () => void;
+  onApply: (updates: Array<{ projId: string; hrsUsed: number }>) => void;
+}
+
+interface TdPreviewRow {
+  projId: string;
+  projName: string;
+  hrsUsed: number;
+  current: number;
+}
+
+const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onApply }) => {
+  const [preview, setPreview] = React.useState<TdPreviewRow[]>([]);
+  const [error, setError] = React.useState('');
+  const [parsed, setParsed] = React.useState(false);
+
+  const handleFile = (f: File | null): void => {
+    if (!f) return;
+    setError('');
+    setParsed(false);
+    setPreview([]);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const XLSX: any = window.XLSX;
+        if (!XLSX) { setError('SheetJS (XLSX) library is not loaded.'); return; }
+        const data = new Uint8Array(ev.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        let hRow = -1;
+        let projCol = -1;
+        let hrsCol = -1;
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+          const row = rows[i] as unknown[];
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j] || '').toLowerCase();
+            if (cell.indexOf('project') >= 0) projCol = j;
+            if (cell.indexOf('hour') >= 0 || cell.indexOf('total') >= 0) hrsCol = j;
+          }
+          if (projCol >= 0 && hrsCol >= 0) { hRow = i; break; }
+        }
+        if (hRow < 0 || projCol < 0 || hrsCol < 0) {
+          setError('Could not find Project / Hours columns. Ensure the XLS has "Project" and "Hours" (or "Total") headers.');
+          return;
+        }
+        const updates: TdPreviewRow[] = [];
+        for (let i = hRow + 1; i < rows.length; i++) {
+          const row = rows[i] as unknown[];
+          const projRaw = String(row[projCol] || '').trim();
+          const hrsRaw = parseFloat(String(row[hrsCol] || '0'));
+          if (!projRaw || isNaN(hrsRaw) || hrsRaw === 0) continue;
+          const match = projects.find(p =>
+            p.projNum.toLowerCase() === projRaw.toLowerCase() ||
+            p.name.toLowerCase().indexOf(projRaw.toLowerCase()) >= 0 ||
+            projRaw.toLowerCase().indexOf(p.projNum.toLowerCase()) >= 0
+          );
+          if (match) {
+            const existing = updates.filter(u => u.projId === match.id)[0];
+            if (existing) { existing.hrsUsed += hrsRaw; }
+            else { updates.push({ projId: match.id, projName: match.projNum + ' — ' + match.name, hrsUsed: hrsRaw, current: match.hrsUsed }); }
+          }
+        }
+        if (updates.length === 0) {
+          setError('No matching projects found. Ensure project numbers in the XLS file match your projects.');
+          return;
+        }
+        setPreview(updates);
+        setParsed(true);
+      } catch (e) {
+        setError('Failed to parse XLS file: ' + String(e));
+      }
+    };
+    reader.readAsArrayBuffer(f);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(240,242,245,0.97)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' }}>
+      <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 10, padding: '28px 32px', maxWidth: 560, width: '95%', boxShadow: '0 16px 60px rgba(0,0,0,.18)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 800, fontSize: 18, color: 'var(--t1)' }}>Import Time Doctor XLS</div>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t3)', width: 32, height: 32, borderRadius: 6, fontSize: 15, cursor: 'pointer' }}>x</button>
+        </div>
+        <div style={{ fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.6 }}>
+          Select a Time Doctor XLS export. The importer will match project numbers and update Hours Used.
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <input type="file" accept=".xls,.xlsx,.csv" onChange={e => handleFile(e.target.files ? e.target.files[0] : null)}
+            style={{ fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t1)' }} />
+        </div>
+        {error && (
+          <div style={{ background: 'var(--rd2)', border: '1px solid var(--rd)', borderRadius: 4, padding: '10px 14px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--rd)', marginBottom: 14 }}>
+            {error}
+          </div>
+        )}
+        {parsed && preview.length > 0 && (
+          <div>
+            <div style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>
+              {preview.length} project{preview.length !== 1 ? 's' : ''} will be updated:
+            </div>
+            <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--bd)', borderRadius: 4, marginBottom: 18 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, fontFamily: 'Montserrat' }}>
+                <thead>
+                  <tr style={{ background: 'var(--s2)', borderBottom: '1px solid var(--bd)' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)' }}>Project</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--t3)' }}>Current</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--t3)' }}>New Total</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--t3)' }}>Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.map((u, i) => {
+                    const newTotal = u.current + u.hrsUsed;
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--bd)' }}>
+                        <td style={{ padding: '7px 12px', color: 'var(--t1)', fontWeight: 500 }}>{u.projName}</td>
+                        <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--t3)' }}>{u.current}h</td>
+                        <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--t1)', fontWeight: 700 }}>{newTotal.toFixed(1)}h</td>
+                        <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--am)', fontWeight: 600 }}>+{u.hrsUsed.toFixed(1)}h</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <BtnPrimary onClick={() => onApply(preview.map(u => ({ projId: u.projId, hrsUsed: u.current + u.hrsUsed })))}>
+                APPLY UPDATES
+              </BtnPrimary>
+              <button onClick={onClose} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {!parsed && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+            <button onClick={onClose} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Close</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
+  const spService = React.useRef(new SharePointService(props.siteUrl));
+  const { show: toast, Toast } = useToast();
+
+  // ── Data
+  const [projects, setProjects] = React.useState<IProject[]>([]);
+  const [rfis, setRfis] = React.useState<IRfi[]>([]);
+  const [spLoading, setSpLoading] = React.useState(true);
+
+  // ── View
+  const [mod, setMod] = React.useState<Mod>('projects');
+  const [clock, setClock] = React.useState('');
+
+  // ── Project filters & sort
+  const [srch, setSrch] = React.useState('');
+  const [yr, setYr] = React.useState('2026');
+  const [stFilt, setStFilt] = React.useState('');
+  const [sCol, setSCol] = React.useState('projNum');
+  const [sDir, setSDir] = React.useState<SDir>('asc');
+
+  // ── EWO expand
+  const [exp, setExp] = React.useState<Record<string, boolean>>({});
+
+  // ── RFI filters & sort
+  const [rfiSrch, setRfiSrch] = React.useState('');
+  const [rfiProj, setRfiProj] = React.useState('');
+  const [rfiSt, setRfiSt] = React.useState('');
+  const [rSCol, setRSCol] = React.useState('rfiNum');
+  const [rSDir, setRSDir] = React.useState<SDir>('asc');
+  const [rfiExp, setRfiExp] = React.useState<Record<string, boolean>>({});
+
+  // ── Panel
+  const [panel, setPanel] = React.useState<PanelState>({ type: null });
+
+  // ── Delete modal
+  const [del, setDel] = React.useState<DelState>({ open: false, label: '', onConfirm: () => undefined });
+
+  // ── Time Doctor
+  const [tdModal, setTdModal] = React.useState(false);
+
+  // ── Load data
+  const loadData = React.useCallback(async () => {
+    setSpLoading(true);
+    try {
+      const [p, r] = await Promise.all([
+        spService.current.loadProjects(),
+        spService.current.loadRfis()
+      ]);
+      setProjects(p);
+      setRfis(r);
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      toast('Failed to load data: ' + msg, 'error');
+    } finally {
+      setSpLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    loadData().catch(() => undefined);
+  }, [loadData]);
+
+  // ── Live clock
+  React.useEffect(() => {
+    const tick = (): void => {
+      setClock(new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ── Sort helpers
+  const sortList = <T,>(arr: T[], col: string, dir: SDir): T[] => {
+    return arr.slice().sort((a, b) => {
+      const va = (a as Record<string, unknown>)[col] as string | number ?? '';
+      const vb = (b as Record<string, unknown>)[col] as string | number ?? '';
+      const cmp = String(va).localeCompare(String(vb), undefined, { numeric: true });
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  };
+
+  const onSort = (col: string): void => {
+    if (sCol === col) setSDir((d: SDir) => d === 'asc' ? 'desc' : 'asc');
+    else { setSCol(col); setSDir('asc'); }
+  };
+
+  const onRSort = (col: string): void => {
+    if (rSCol === col) setRSDir((d: SDir) => d === 'asc' ? 'desc' : 'asc');
+    else { setRSCol(col); setRSDir('asc'); }
+  };
+
+  const sortArrow = (col: string, active: string, dir: SDir): string => {
+    if (col !== active) return ' ↕';
+    return dir === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  // ── Filtered projects
+  const visProjects = React.useMemo(() => {
+    const list = projects.filter(p => {
+      if (p.isEwo) return false; // EWOs shown as sub-rows
+      if (yr && yr !== 'all' && String(p.year) !== yr) return false;
+      if (stFilt && p.status !== stFilt) return false;
+      if (srch) {
+        const q = srch.toLowerCase();
+        return (p.projNum + p.name + p.company + p.contact + p.quoteNum).toLowerCase().indexOf(q) >= 0;
+      }
+      return true;
+    });
+    return sortList(list, sCol, sDir);
+  }, [projects, yr, stFilt, srch, sCol, sDir]);
+
+  // ── RFI used per project
+  const rfiCountByProj = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    rfis.forEach(r => { m[r.projectId] = (m[r.projectId] || 0) + 1; });
+    return m;
+  }, [rfis]);
+
+  // ── Filtered RFIs
+  const visRfis = React.useMemo(() => {
+    const list = rfis.filter(r => {
+      if (rfiProj && r.projectId !== rfiProj) return false;
+      if (rfiSt && effSt(r) !== rfiSt) return false;
+      if (rfiSrch) {
+        const q = rfiSrch.toLowerCase();
+        return (r.rfiNum + r.description + r.submittedTo + r.projectName).toLowerCase().indexOf(q) >= 0;
+      }
+      return true;
+    });
+    return sortList(list, rSCol, rSDir);
+  }, [rfis, rfiProj, rfiSt, rfiSrch, rSCol, rSDir]);
+
+  // ── RFIs grouped by project
+  const rfisByProject = React.useMemo(() => {
+    const m: Record<string, IRfi[]> = {};
+    visRfis.forEach(r => {
+      if (!m[r.projectId]) m[r.projectId] = [];
+      m[r.projectId].push(r);
+    });
+    return m;
+  }, [visRfis]);
+
+  // ── Stat cards
+  const allActive = projects.filter(p => !p.isEwo && p.status === 'Active').length;
+  const allOnHold = projects.filter(p => !p.isEwo && p.status === 'On Hold').length;
+  const allOverBudget = projects.filter(p => !p.isEwo && (p.status === 'Over Budget' || (p.hrsAllowed > 0 && p.hrsUsed > p.hrsAllowed))).length;
+  const totalHrsUsed = projects.reduce((s, p) => s + p.hrsUsed, 0);
+  const rfiOpen = rfis.filter(r => effSt(r) === 'Open').length;
+  const rfiOverdue = rfis.filter(r => isOD(r)).length;
+  const rfiClosed = rfis.filter(r => r.status === 'Closed').length;
+  const rfiImpact = rfis.filter(r => r.impacted === 'Yes').reduce((s, r) => s + rfiTot(r), 0);
+
+  // ── CRUD helpers
+  const saveProject = async (d: IProject, isNew: boolean): Promise<void> => {
+    try {
+      if (isNew) {
+        const spId = await spService.current.addProject(d);
+        const saved: IProject = { ...d, id: d.projNum || String(spId), spId };
+        setProjects(prev => [...prev, saved]);
+        toast('Project created.');
+      } else {
+        if (!d.spId) throw new Error('No spId on project');
+        await spService.current.updateProject(d.spId, d);
+        setProjects(prev => prev.map(p => p.id === d.id ? { ...d } : p));
+        toast('Project saved.');
+      }
+      setPanel({ type: null });
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      toast('Save failed: ' + msg, 'error');
+    }
+  };
+
+  const deleteProject = async (proj: IProject): Promise<void> => {
+    if (!proj.spId) { setProjects(prev => prev.filter(p => p.id !== proj.id)); return; }
+    try {
+      await spService.current.deleteProject(proj.spId);
+      setProjects(prev => prev.filter(p => p.id !== proj.id));
+      setPanel({ type: null });
+      setDel({ open: false, label: '', onConfirm: () => undefined });
+      toast('Project deleted.');
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      toast('Delete failed: ' + msg, 'error');
+    }
+  };
+
+  const saveRfi = async (d: IRfi, isNew: boolean): Promise<void> => {
+    try {
+      if (isNew) {
+        const spId = await spService.current.addRfi(d);
+        const saved: IRfi = { ...d, id: d.rfiNum || String(spId), spId };
+        setRfis(prev => [...prev, saved]);
+        toast('RFI created.');
+      } else {
+        if (!d.spId) throw new Error('No spId on RFI');
+        await spService.current.updateRfi(d.spId, d);
+        setRfis(prev => prev.map(r => r.id === d.id ? { ...d } : r));
+        toast('RFI saved.');
+      }
+      setPanel({ type: null });
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      toast('Save failed: ' + msg, 'error');
+    }
+  };
+
+  const deleteRfi = async (rfi: IRfi): Promise<void> => {
+    if (!rfi.spId) { setRfis(prev => prev.filter(r => r.id !== rfi.id)); return; }
+    try {
+      await spService.current.deleteRfi(rfi.spId);
+      setRfis(prev => prev.filter(r => r.id !== rfi.id));
+      setPanel({ type: null });
+      setDel({ open: false, label: '', onConfirm: () => undefined });
+      toast('RFI deleted.');
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      toast('Delete failed: ' + msg, 'error');
+    }
+  };
+
+  const confirmDelete = (label: string, fn: () => void): void => {
+    setDel({ open: true, label, onConfirm: fn });
+  };
+
+  // ── Time Doctor apply
+  const applyTdUpdates = async (updates: Array<{ projId: string; hrsUsed: number }>): Promise<void> => {
+    setTdModal(false);
+    let success = 0;
+    for (let i = 0; i < updates.length; i++) {
+      const u = updates[i];
+      const p = projects.filter(x => x.id === u.projId)[0];
+      if (!p || !p.spId) continue;
+      try {
+        const updated: IProject = { ...p, hrsUsed: u.hrsUsed };
+        await spService.current.updateProject(p.spId, updated);
+        setProjects(prev => prev.map(x => x.id === u.projId ? updated : x));
+        success++;
+      } catch (e) {
+        const msg = (e instanceof Error) ? e.message : String(e);
+        toast('Failed to update ' + p.projNum + ': ' + msg, 'error');
+      }
+    }
+    toast('Time Doctor import: ' + success + ' project' + (success !== 1 ? 's' : '') + ' updated.');
+  };
+
+  // ── Years for filter
+  const years = React.useMemo(() => {
+    const seen: Record<string, boolean> = {};
+    seen['2026'] = true;
+    projects.forEach(p => { seen[String(p.year)] = true; });
+    const arr = Object.keys(seen).sort().reverse();
+    return (['all'] as string[]).concat(arr);
+  }, [projects]);
+
+  // ── Panel helpers
+  const openProjDetail = (p: IProject): void => setPanel({ type: 'projDetail', proj: p });
+  const openProjForm = (p: IProject | null): void => setPanel({ type: 'projForm', proj: p });
+  const openRfiDetail = (r: IRfi, parentProj?: IProject): void => setPanel({ type: 'rfiDetail', rfi: r, parentProj });
+  const openRfiForm = (r: IRfi | null, parentProj?: IProject): void => setPanel({ type: 'rfiForm', rfi: r, parentProj });
+
+  // ── EWOs for a project
+  const getEwos = (parentId: string): IProject[] => projects.filter(p => p.isEwo && p.parentId === parentId);
+
+  // ── Th helper component
+  const Th: React.FC<{ col: string; label: string; rfi?: boolean }> = ({ col, label, rfi: isRfi }) => {
+    const active = isRfi ? rSCol : sCol;
+    const dir = isRfi ? rSDir : sDir;
+    return (
+      <th onClick={() => isRfi ? onRSort(col) : onSort(col)}
+        style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: active === col ? 'var(--3eg)' : 'var(--t3)', cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', userSelect: 'none', background: 'var(--s2)' }}>
+        {label}<span style={{ opacity: 0.6 }}>{sortArrow(col, active, dir)}</span>
+      </th>
+    );
+  };
+
+  // ── Plain th
+  const ThPlain: React.FC<{ label: string }> = ({ label }) => (
+    <th style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t3)', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', background: 'var(--s2)' }}>{label}</th>
+  );
+
+  const headerBg: React.CSSProperties = {
+    background: 'var(--hdr)', display: 'flex', alignItems: 'center',
+    padding: '0 20px', height: 56, flexShrink: 0, position: 'sticky', top: 0, zIndex: 200,
+    boxShadow: '0 2px 12px rgba(0,0,0,.18)'
+  };
+
+  // ── Render
+  return (
+    <div className={styles.dashboardRoot}>
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header style={headerBg}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 28 }}>
+          {IMG_LOGO_DASH
+            ? <img src={IMG_LOGO_DASH} alt="3 Edge" style={{ height: 32 }} />
+            : (
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                <span style={{ fontFamily: 'Montserrat', fontWeight: 900, fontSize: 14, color: 'var(--3eg)', letterSpacing: '.18em' }}>3 EDGE</span>
+                <span style={{ fontFamily: 'Montserrat', fontWeight: 400, fontSize: 9, color: '#8a9bb0', letterSpacing: '.2em', marginTop: 1 }}>DESIGN</span>
+              </div>
+            )
+          }
+        </div>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {(['projects', 'rfis'] as Mod[]).map((m: Mod) => (
+            <button key={m} onClick={() => setMod(m)} style={{
+              fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.12em',
+              textTransform: 'uppercase', padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
+              background: mod === m ? 'var(--3eg3)' : 'transparent',
+              border: mod === m ? '1px solid var(--3eg)' : '1px solid transparent',
+              color: mod === m ? 'var(--3eg)' : '#8a9bb0', transition: 'all .15s'
+            }}>
+              {m === 'projects' ? 'Project Tracker' : 'RFI Tracker'}
+            </button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
+        {mod === 'projects' && (
+          <button onClick={() => setTdModal(true)} style={{
+            fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, letterSpacing: '.1em',
+            textTransform: 'uppercase', padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
+            background: 'rgba(212,136,10,0.14)', border: '1px solid var(--am)', color: 'var(--am)',
+            marginRight: 10, whiteSpace: 'nowrap'
+          }}>
+            Time Doctor Import
+          </button>
+        )}
+        <button onClick={loadData} style={{
+          fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, letterSpacing: '.1em',
+          textTransform: 'uppercase', padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
+          background: spLoading ? 'rgba(42,158,42,0.08)' : 'transparent',
+          border: '1px solid rgba(138,155,176,.3)', color: '#8a9bb0', marginRight: 14
+        }}>
+          {spLoading ? 'Loading...' : 'Refresh'}
+        </button>
+        <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 11.5, color: '#8a9bb0', whiteSpace: 'nowrap' }}>{clock}</div>
+        {props.userDisplayName && (
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0', marginLeft: 14, whiteSpace: 'nowrap' }}>{props.userDisplayName}</div>
+        )}
+      </header>
+
+      {/* ── Body ────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 48px' }}>
+
+        {/* ═══════════════ PROJECT TRACKER ═══════════════ */}
+        {mod === 'projects' && (
+          <div className={styles.fade}>
+            <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
+              <Stat label="Active" value={allActive} col="var(--3eg)" sub="projects" />
+              <Stat label="On Hold" value={allOnHold} col="var(--am)" sub="projects" />
+              <Stat label="Over Budget" value={allOverBudget} col="var(--rd)" warn={allOverBudget > 0} sub="projects" />
+              <Stat label="Total Projects" value={projects.filter(p => !p.isEwo).length} col="var(--bl)" sub="all time" />
+              <Stat label="Hours Used" value={totalHrsUsed.toFixed(0) + 'h'} col="var(--pu)" sub="across all projects" />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...inp, maxWidth: 220 }} placeholder="Search projects..." value={srch} onChange={e => setSrch(e.target.value)} />
+              <select style={{ ...selStyle, maxWidth: 120 }} value={yr} onChange={e => setYr(e.target.value)}>
+                {years.map(y => <option key={y} value={y}>{y === 'all' ? 'All Years' : y}</option>)}
+              </select>
+              <select style={{ ...selStyle, maxWidth: 160 }} value={stFilt} onChange={e => setStFilt(e.target.value)}>
+                <option value="">All Statuses</option>
+                {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => openProjForm(null)} style={{
+                fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                background: 'var(--3eg)', color: '#1a2030', border: 'none',
+                boxShadow: '0 2px 8px rgba(42,158,42,.3)'
+              }}>
+                + New Project
+              </button>
+            </div>
+
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 28, background: 'var(--s2)', borderBottom: '2px solid var(--bd)' }} />
+                      <Th col="projNum" label="Project #" />
+                      <Th col="quoteNum" label="Quote #" />
+                      <Th col="name" label="Name" />
+                      <Th col="company" label="Company" />
+                      <Th col="contact" label="Contact" />
+                      <Th col="hrsUsed" label="Hours" />
+                      <Th col="startDate" label="Start" />
+                      <Th col="finishDate" label="Finish" />
+                      <ThPlain label="RFIs" />
+                      <Th col="status" label="Status" />
+                      <ThPlain label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spLoading && (
+                      <tr><td colSpan={12} style={{ padding: '32px', textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>Loading projects...</td></tr>
+                    )}
+                    {!spLoading && visProjects.length === 0 && (
+                      <tr><td colSpan={12} style={{ padding: '32px', textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>No projects found.</td></tr>
+                    )}
+                    {!spLoading && visProjects.map(p => {
+                      const ewos = getEwos(p.id);
+                      const expanded = !!exp[p.id];
+                      const rfiCount = rfiCountByProj[p.id] || 0;
+                      const rowBg = 'var(--s1)';
+                      return (
+                        <React.Fragment key={p.id}>
+                          <tr style={{ background: rowBg, borderBottom: '1px solid var(--s3)' }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--s2)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
+                            <td style={{ padding: '0 0 0 8px', width: 28, textAlign: 'center' }}>
+                              {ewos.length > 0 && (
+                                <button onClick={() => setExp(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 10, color: 'var(--t4)', fontFamily: 'Montserrat', padding: '2px 4px' }}>
+                                  {expanded ? 'v' : '>'}
+                                </button>
+                              )}
+                            </td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.name}</td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.company || '—'}</td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
+                            <td style={{ padding: '11px 12px', minWidth: 160 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
+                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
+                            <td style={{ padding: '11px 12px', minWidth: 130 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
+                            <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}><Tag s={p.status} /></td>
+                            <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
+                                <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>
+                                <IBtn onClick={() => confirmDelete('Delete project "' + p.projNum + ' — ' + p.name + '"?', () => { deleteProject(p).catch(() => undefined); })} danger title="Delete project">Del</IBtn>
+                              </div>
+                            </td>
+                          </tr>
+                          {expanded && ewos.map(ewo => {
+                            const ewoRfis = rfiCountByProj[ewo.id] || 0;
+                            return (
+                              <tr key={ewo.id} className={styles.ewoRow} style={{ background: 'rgba(42,158,42,0.035)', borderBottom: '1px solid var(--s3)' }}>
+                                <td style={{ padding: '0 0 0 8px', width: 28 }} />
+                                <td style={{ padding: '9px 12px 9px 24px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>
+                                  <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
+                                </td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12, color: 'var(--t2)', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.company || '—'}</td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
+                                <td style={{ padding: '9px 12px', minWidth: 160 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.startDate)}</td>
+                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.finishDate)}</td>
+                                <td style={{ padding: '9px 12px', minWidth: 130 }}><RfiBar allowed={ewo.rfisAllowed} used={ewoRfis} /></td>
+                                <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
+                                <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
+                                    <IBtn onClick={() => openProjForm(ewo)} title="Edit EWO">Edit</IBtn>
+                                    <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {!spLoading && visProjects.length > 0 && (
+                <div style={{ padding: '10px 16px', borderTop: '1px solid var(--bd)', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t4)' }}>
+                  Showing {visProjects.length} project{visProjects.length !== 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════ RFI TRACKER ═══════════════ */}
+        {mod === 'rfis' && (
+          <div className={styles.fade}>
+            <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
+              <Stat label="Open" value={rfiOpen} col="var(--gn)" sub="RFIs" />
+              <Stat label="Overdue" value={rfiOverdue} col="var(--rd)" warn={rfiOverdue > 0} sub="RFIs" />
+              <Stat label="Closed" value={rfiClosed} col="var(--bl)" sub="RFIs" />
+              <Stat label="Total RFIs" value={rfis.length} col="var(--pu)" sub="all projects" />
+              <Stat label="Impact Hours" value={rfiImpact.toFixed(1) + 'h'} col="var(--am)" sub="total EWO impact" />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...inp, maxWidth: 220 }} placeholder="Search RFIs..." value={rfiSrch} onChange={e => setRfiSrch(e.target.value)} />
+              <select style={{ ...selStyle, maxWidth: 260 }} value={rfiProj} onChange={e => setRfiProj(e.target.value)}>
+                <option value="">All Projects</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>)}
+              </select>
+              <select style={{ ...selStyle, maxWidth: 200 }} value={rfiSt} onChange={e => setRfiSt(e.target.value)}>
+                <option value="">All Statuses</option>
+                {RFI_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="Overdue">Overdue</option>
+              </select>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => openRfiForm(null)} style={{
+                fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                background: 'var(--3eg)', color: '#1a2030', border: 'none',
+                boxShadow: '0 2px 8px rgba(42,158,42,.3)'
+              }}>
+                + New RFI
+              </button>
+            </div>
+
+            {spLoading && (
+              <div style={{ padding: 32, textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>Loading RFIs...</div>
+            )}
+            {!spLoading && visRfis.length === 0 && (
+              <div style={{ padding: 32, textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>No RFIs found.</div>
+            )}
+            {!spLoading && Object.keys(rfisByProject).map(projId => {
+              const projRfis = rfisByProject[projId];
+              const proj = projects.filter(p => p.id === projId)[0];
+              const groupExpanded = rfiExp[projId] !== false;
+              return (
+                <div key={projId} style={{ marginBottom: 20, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+                  <div onClick={() => setRfiExp(prev => ({ ...prev, [projId]: !groupExpanded }))}
+                    style={{ padding: '12px 18px', background: 'var(--s2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 400, fontSize: 10, color: 'var(--t4)' }}>{groupExpanded ? 'v' : '>'}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 800, fontSize: 13, color: 'var(--3eg)' }}>{proj ? proj.projNum : projId}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)' }}>{proj ? proj.name : ''}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t4)', marginLeft: 4 }}>— {projRfis.length} RFI{projRfis.length !== 1 ? 's' : ''}</span>
+                    {proj ? <Tag s={proj.status} /> : null}
+                    <div style={{ flex: 1 }} />
+                    <button onClick={e => { e.stopPropagation(); openRfiForm(null, proj); }}
+                      style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'var(--3eg3)', border: '1px solid var(--3eg)', color: 'var(--3eg)' }}>
+                      + RFI
+                    </button>
+                  </div>
+                  {groupExpanded && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            <Th col="rfiNum" label="RFI #" rfi />
+                            <Th col="rfiType" label="Type" rfi />
+                            <Th col="status" label="Status" rfi />
+                            <Th col="dateIssued" label="Issued" rfi />
+                            <Th col="dateRequired" label="Required" rfi />
+                            <Th col="submittedTo" label="To" rfi />
+                            <Th col="response" label="Response" rfi />
+                            <Th col="impacted" label="Impact" rfi />
+                            <ThPlain label="Actions" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {projRfis.map(r => {
+                            const st = effSt(r);
+                            const overdue = isOD(r);
+                            const rowBg = overdue ? 'rgba(204,51,51,0.03)' : 'var(--s1)';
+                            return (
+                              <tr key={r.id} style={{ background: rowBg, borderBottom: '1px solid var(--s3)' }}
+                                onMouseEnter={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s2)'; }}
+                                onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openRfiDetail(r, proj)}>{r.rfiNum}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.rfiType}</td>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={st} /></td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(r.dateIssued)}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: overdue ? 'var(--rd)' : 'var(--t3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtD(r.dateRequired)}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.submittedTo || '—'}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{r.response || '—'}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: r.impacted === 'Yes' ? 'var(--am)' : 'var(--t4)', whiteSpace: 'nowrap' }}>
+                                  {r.impacted === 'Yes' ? ('Yes (' + rfiTot(r).toFixed(1) + 'h)') : 'No'}
+                                </td>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <IBtn onClick={() => openRfiDetail(r, proj)} title="View RFI">View</IBtn>
+                                    <IBtn onClick={() => openRfiForm(r, proj)} title="Edit RFI">Edit</IBtn>
+                                    <IBtn onClick={() => confirmDelete('Delete RFI "' + r.rfiNum + '"?', () => { deleteRfi(r).catch(() => undefined); })} danger title="Delete RFI">Del</IBtn>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Slide-over Panels ──────────────────────────────────── */}
+
+      <Panel
+        open={panel.type === 'projDetail'}
+        onClose={() => setPanel({ type: null })}
+        title={panel.proj ? panel.proj.projNum : ''}
+        subtitle={panel.proj ? panel.proj.name : ''}
+        tag={panel.proj ? <Tag s={panel.proj.status} /> : undefined}
+      >
+        {panel.type === 'projDetail' && panel.proj && (
+          <ProjDetail
+            proj={panel.proj}
+            rfis={rfis}
+            onEdit={() => setPanel({ type: 'projForm', proj: panel.proj })}
+            onDelete={() => {
+              const pRef = panel.proj!;
+              confirmDelete('Delete project "' + pRef.projNum + ' — ' + pRef.name + '"?', () => { deleteProject(pRef).catch(() => undefined); });
+            }}
+            onNewRfi={() => {
+              const pRef = panel.proj!;
+              const newRfi = emptyRfi();
+              newRfi.projectId = pRef.id;
+              newRfi.projectName = pRef.name;
+              setPanel({ type: 'rfiForm', rfi: newRfi, parentProj: pRef });
+            }}
+            onViewRfi={(r) => setPanel({ type: 'rfiDetail', rfi: r, parentProj: panel.proj })}
+          />
+        )}
+      </Panel>
+
+      <Panel
+        open={panel.type === 'projForm'}
+        onClose={() => setPanel({ type: null })}
+        title={panel.proj ? ('Edit Project — ' + panel.proj.projNum) : 'New Project'}
+        subtitle={panel.proj ? panel.proj.name : 'Fill in the details below'}
+      >
+        {panel.type === 'projForm' && (
+          <ProjForm
+            initial={panel.proj || emptyProj()}
+            isNew={!panel.proj}
+            projects={projects}
+            onSave={(d) => { saveProject(d, !panel.proj).catch(() => undefined); }}
+            onCancel={() => setPanel({ type: null })}
+          />
+        )}
+      </Panel>
+
+      <Panel
+        open={panel.type === 'rfiDetail'}
+        onClose={() => setPanel({ type: null })}
+        title={panel.rfi ? ('RFI ' + panel.rfi.rfiNum) : ''}
+        subtitle={panel.rfi ? (panel.rfi.rfiType + ' — ' + panel.rfi.projectName) : ''}
+        tag={panel.rfi ? <Tag s={effSt(panel.rfi)} /> : undefined}
+      >
+        {panel.type === 'rfiDetail' && panel.rfi && (
+          <RfiDetail
+            rfi={panel.rfi}
+            proj={panel.parentProj || projects.filter(p => p.id === panel.rfi!.projectId)[0]}
+            onEdit={() => setPanel({ type: 'rfiForm', rfi: panel.rfi, parentProj: panel.parentProj })}
+            onDelete={() => {
+              const rRef = panel.rfi!;
+              confirmDelete('Delete RFI "' + rRef.rfiNum + '"?', () => { deleteRfi(rRef).catch(() => undefined); });
+            }}
+          />
+        )}
+      </Panel>
+
+      <Panel
+        open={panel.type === 'rfiForm'}
+        onClose={() => setPanel({ type: null })}
+        title={(panel.rfi && panel.rfi.rfiNum) ? ('Edit RFI — ' + panel.rfi.rfiNum) : 'New RFI'}
+        subtitle={panel.parentProj ? (panel.parentProj.projNum + ' — ' + panel.parentProj.name) : 'Fill in the details below'}
+      >
+        {panel.type === 'rfiForm' && (
+          <RfiForm
+            initial={(() => {
+              if (panel.rfi) return panel.rfi;
+              const r = emptyRfi();
+              if (panel.parentProj) { r.projectId = panel.parentProj.id; r.projectName = panel.parentProj.name; }
+              return r;
+            })()}
+            isNew={!panel.rfi || !panel.rfi.spId}
+            projects={projects}
+            onSave={(d) => { saveRfi(d, !panel.rfi || !panel.rfi.spId).catch(() => undefined); }}
+            onCancel={() => setPanel({ type: null })}
+          />
+        )}
+      </Panel>
+
+      {/* ── Delete Confirmation Modal ──────────────────────────── */}
+      <DelModal
+        open={del.open}
+        label={del.label}
+        onConfirm={() => { del.onConfirm(); }}
+        onCancel={() => setDel({ open: false, label: '', onConfirm: () => undefined })}
+      />
+
+      {/* ── Time Doctor Import Modal ──────────────────────────── */}
+      {tdModal && (
+        <TdImportModal
+          projects={projects}
+          onClose={() => setTdModal(false)}
+          onApply={(updates) => { applyTdUpdates(updates).catch(() => undefined); }}
+        />
+      )}
+
+      {/* ── Toast ─────────────────────────────────────────────── */}
+      {Toast}
+    </div>
+  );
+};
+
+export default ManagerDashboard;

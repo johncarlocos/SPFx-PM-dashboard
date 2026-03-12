@@ -23,7 +23,7 @@ export default class StaffDashboardWebPart extends BaseClientSideWebPart<IStaffD
       {
         siteUrl: this.context.pageContext.web.absoluteUrl,
         userDisplayName: this.context.pageContext.user.displayName,
-        formDigest: (this.context.pageContext as any).legacyPageContext?.formDigestValue || ''
+        spHttpClient: this.context.spHttpClient
       }
     );
 

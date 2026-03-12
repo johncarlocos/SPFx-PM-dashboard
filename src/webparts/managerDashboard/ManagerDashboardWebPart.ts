@@ -22,7 +22,7 @@ export default class ManagerDashboardWebPart extends BaseClientSideWebPart<IMana
       {
         siteUrl: this.context.pageContext.web.absoluteUrl,
         userDisplayName: this.context.pageContext.user.displayName,
-        formDigest: (this.context.pageContext as any).legacyPageContext?.formDigestValue || ''
+        spHttpClient: this.context.spHttpClient
       }
     );
 
@@ -42,7 +42,7 @@ export default class ManagerDashboardWebPart extends BaseClientSideWebPart<IMana
       pages: [
         {
           header: {
-            description: 'Manager Dashboard Settings'
+            description: '3Edge Dashboard Settings'
           },
           groups: [
             {

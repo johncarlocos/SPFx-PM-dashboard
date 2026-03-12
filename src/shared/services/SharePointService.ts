@@ -1,3 +1,4 @@
+import { SPHttpClient, SPHttpClientResponse, ISPHttpClientOptions } from '@microsoft/sp-http';
 import { IProject, IRfi } from '../models/IProject';
 
 const LIST_PROJ = '3Edge_Projects';
@@ -5,36 +6,19 @@ const LIST_RFI = '3Edge_RFIs';
 
 export class SharePointService {
   private _siteUrl: string;
-  private _dig: string | null = null;
-  private _digExp: number = 0;
+  private _http: SPHttpClient;
 
-  constructor(siteUrl: string, initialDigest?: string) {
+  constructor(siteUrl: string, spHttpClient: SPHttpClient) {
     this._siteUrl = siteUrl;
-    if (initialDigest) {
-      this._dig = initialDigest;
-      this._digExp = Date.now() + 25 * 60 * 1000; // assume 25 min validity
-    }
+    this._http = spHttpClient;
   }
 
-  private async getDigest(): Promise<string> {
-    if (this._dig && Date.now() < this._digExp) return this._dig;
-    const r = await fetch(this._siteUrl + '/_api/contextinfo', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { Accept: 'application/json;odata=nometadata' }
-    });
-    if (!r.ok) throw new Error('Cannot get SharePoint token (HTTP ' + r.status + ').');
-    const j = await r.json();
-    this._dig = j.FormDigestValue;
-    this._digExp = Date.now() + ((j.FormDigestTimeoutSeconds || 1800) - 60) * 1000;
-    return this._dig!;
-  }
-
-  public async spGet(path: string): Promise<any> {
-    const r = await fetch(this._siteUrl + path, {
-      credentials: 'include',
-      headers: { Accept: 'application/json;odata=nometadata' }
-    });
+  private async spGet(path: string): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const r: SPHttpClientResponse = await this._http.get(
+      this._siteUrl + path,
+      SPHttpClient.configurations.v1,
+      { headers: { Accept: 'application/json;odata=nometadata' } }
+    );
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
@@ -43,18 +27,19 @@ export class SharePointService {
     return r.json();
   }
 
-  public async spPost(path: string, body: any): Promise<any> {
-    const digest = await this.getDigest();
-    const r = await fetch(this._siteUrl + path, {
-      method: 'POST',
-      credentials: 'include',
+  private async spPost(path: string, body: any): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const opts: ISPHttpClientOptions = {
       headers: {
         Accept: 'application/json;odata=nometadata',
-        'Content-Type': 'application/json;odata=nometadata',
-        'X-RequestDigest': digest
+        'Content-Type': 'application/json;odata=nometadata'
       },
       body: JSON.stringify(body)
-    });
+    };
+    const r: SPHttpClientResponse = await this._http.post(
+      this._siteUrl + path,
+      SPHttpClient.configurations.v1,
+      opts
+    );
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
@@ -64,20 +49,21 @@ export class SharePointService {
     return text ? JSON.parse(text) : {};
   }
 
-  public async spMerge(path: string, body: any): Promise<void> {
-    const digest = await this.getDigest();
-    const r = await fetch(this._siteUrl + path, {
-      method: 'POST',
-      credentials: 'include',
+  private async spMerge(path: string, body: any): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const opts: ISPHttpClientOptions = {
       headers: {
         Accept: 'application/json;odata=nometadata',
         'Content-Type': 'application/json;odata=nometadata',
-        'X-RequestDigest': digest,
         'X-HTTP-Method': 'MERGE',
         'IF-MATCH': '*'
       },
       body: JSON.stringify(body)
-    });
+    };
+    const r: SPHttpClientResponse = await this._http.post(
+      this._siteUrl + path,
+      SPHttpClient.configurations.v1,
+      opts
+    );
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
@@ -85,17 +71,18 @@ export class SharePointService {
     }
   }
 
-  public async spDelete(path: string): Promise<void> {
-    const digest = await this.getDigest();
-    const r = await fetch(this._siteUrl + path, {
-      method: 'POST',
-      credentials: 'include',
+  private async spDelete(path: string): Promise<void> {
+    const opts: ISPHttpClientOptions = {
       headers: {
-        'X-RequestDigest': digest,
         'X-HTTP-Method': 'DELETE',
         'IF-MATCH': '*'
       }
-    });
+    };
+    const r: SPHttpClientResponse = await this._http.post(
+      this._siteUrl + path,
+      SPHttpClient.configurations.v1,
+      opts
+    );
     if (!r.ok && r.status !== 404) throw new Error('DELETE HTTP ' + r.status);
   }
 
@@ -103,13 +90,13 @@ export class SharePointService {
 
   public async loadProjects(): Promise<IProject[]> {
     const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items?$top=500&$orderby=projNum asc`);
-    return (d.value || []).map((i: any) => ({
+    return (d.value || []).map((i: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: i.projNum || String(i.Id),
       spId: i.Id,
       projNum: i.projNum || '',
       name: i.name || i.Title || '',
       status: i.status || 'Active',
-      year: i.year ? Number(i.year) : 2026,
+      year: i.year ? Number(i.year) : new Date().getFullYear(),
       hrsAllowed: Number(i.hrsAllowed) || 0,
       hrsUsed: Number(i.hrsUsed) || 0,
       rfisAllowed: Number(i.rfisAllowed) || 0,
@@ -130,13 +117,13 @@ export class SharePointService {
     }));
   }
 
-  private pBody(d: IProject): any {
+  private pBody(d: IProject): object {
     return {
       Title: d.projNum || '',
       projNum: d.projNum || '',
       name: d.name || '',
       status: d.status || 'Active',
-      year: Number(d.year) || 2026,
+      year: Number(d.year) || new Date().getFullYear(),
       hrsAllowed: Number(d.hrsAllowed) || 0,
       hrsUsed: Number(d.hrsUsed) || 0,
       rfisAllowed: Number(d.rfisAllowed) || 0,
@@ -175,7 +162,7 @@ export class SharePointService {
 
   public async loadRfis(): Promise<IRfi[]> {
     const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_RFI}')/items?$top=1000&$orderby=rfiSeq asc`);
-    return (d.value || []).map((i: any) => ({
+    return (d.value || []).map((i: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: i.rfiNum || String(i.Id),
       spId: i.Id,
       rfiNum: i.rfiNum || '',
@@ -213,7 +200,7 @@ export class SharePointService {
     }));
   }
 
-  private rBody(d: IRfi): any {
+  private rBody(d: IRfi): object {
     return {
       Title: d.rfiNum || '',
       rfiNum: d.rfiNum || '',

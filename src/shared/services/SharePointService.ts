@@ -1,4 +1,4 @@
-import { SPHttpClient, SPHttpClientResponse, ISPHttpClientOptions } from '@microsoft/sp-http';
+import { SPHttpClient } from '@microsoft/sp-http';
 import { IProject, IRfi } from '../models/IProject';
 
 const LIST_PROJ = '3Edge_Projects';
@@ -6,23 +6,34 @@ const LIST_RFI = '3Edge_RFIs';
 
 export class SharePointService {
   private _siteUrl: string;
-  private _http: SPHttpClient;
+  private _digest: string = '';
 
-  constructor(siteUrl: string, spHttpClient: SPHttpClient) {
+  // spHttpClient param kept for API compat but all requests use plain fetch
+  constructor(siteUrl: string, _spHttpClient?: SPHttpClient) {
     this._siteUrl = siteUrl;
-    this._http = spHttpClient;
   }
 
   private parseDate(val: string | null | undefined): string {
     if (!val) return '';
-    // OData v3 format: /Date(1234567890000)/
     const m = val.match(/\/Date\((\d+)\)\//);
     if (m) return new Date(Number(m[1])).toISOString().substring(0, 10);
     return val.substring(0, 10);
   }
 
-  // Use plain fetch for GETs — SPHttpClient concatenates its own Accept header with ours,
-  // producing an invalid combined value that SharePoint rejects with 406.
+  private async getDigest(): Promise<string> {
+    if (this._digest) return this._digest;
+    const r = await fetch(this._siteUrl + '/_api/contextinfo', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json;odata=nometadata' }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      this._digest = data.FormDigestValue || '';
+    }
+    return this._digest;
+  }
+
   private async spGet(path: string): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const r = await fetch(this._siteUrl + path, {
       credentials: 'include',
@@ -30,25 +41,27 @@ export class SharePointService {
     });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
       throw new Error(msg);
     }
     return r.json();
   }
 
   private async spPost(path: string, body: any): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const opts: ISPHttpClientOptions = {
-      headers: { 'Content-Type': 'application/json;odata=nometadata' },
+    const digest = await this.getDigest();
+    const r = await fetch(this._siteUrl + path, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-Type': 'application/json;odata=nometadata',
+        'X-RequestDigest': digest
+      },
       body: JSON.stringify(body)
-    };
-    const r: SPHttpClientResponse = await this._http.post(
-      this._siteUrl + path,
-      SPHttpClient.configurations.v1,
-      opts
-    );
+    });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
       throw new Error(msg);
     }
     const text = await r.text();
@@ -56,39 +69,43 @@ export class SharePointService {
   }
 
   private async spMerge(path: string, body: any): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const opts: ISPHttpClientOptions = {
+    const digest = await this.getDigest();
+    const r = await fetch(this._siteUrl + path, {
+      method: 'POST',
+      credentials: 'include',
       headers: {
+        'Accept': 'application/json;odata=nometadata',
         'Content-Type': 'application/json;odata=nometadata',
         'X-HTTP-Method': 'MERGE',
-        'IF-MATCH': '*'
+        'IF-MATCH': '*',
+        'X-RequestDigest': digest
       },
       body: JSON.stringify(body)
-    };
-    const r: SPHttpClientResponse = await this._http.post(
-      this._siteUrl + path,
-      SPHttpClient.configurations.v1,
-      opts
-    );
+    });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      // if digest expired, clear cache so next call refreshes it
+      if (r.status === 403) this._digest = '';
       throw new Error(msg);
     }
   }
 
   private async spDelete(path: string): Promise<void> {
-    const opts: ISPHttpClientOptions = {
+    const digest = await this.getDigest();
+    const r = await fetch(this._siteUrl + path, {
+      method: 'POST',
+      credentials: 'include',
       headers: {
         'X-HTTP-Method': 'DELETE',
-        'IF-MATCH': '*'
+        'IF-MATCH': '*',
+        'X-RequestDigest': digest
       }
-    };
-    const r: SPHttpClientResponse = await this._http.post(
-      this._siteUrl + path,
-      SPHttpClient.configurations.v1,
-      opts
-    );
-    if (!r.ok && r.status !== 404) throw new Error('DELETE HTTP ' + r.status);
+    });
+    if (!r.ok && r.status !== 404) {
+      if (r.status === 403) this._digest = '';
+      throw new Error('DELETE HTTP ' + r.status);
+    }
   }
 
   // ── Project CRUD ──────────────────────────────────────────
@@ -222,7 +239,6 @@ export class SharePointService {
       dateIssued: d.dateIssued || null,
       dateRequired: d.dateRequired || null,
       description: d.description || '',
-      attachments: d.attachments || '',
       clientRfi: d.clientRfi || '',
       dateReceived: d.dateReceived || null,
       response: d.response || '',

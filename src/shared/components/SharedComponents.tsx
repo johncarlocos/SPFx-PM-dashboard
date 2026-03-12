@@ -148,7 +148,7 @@ export const IBtn: React.FC<{ onClick: () => void; title?: string; danger?: bool
         background: h ? (danger ? 'var(--rd2)' : 'var(--3eg3)') : 'var(--s0)',
         border: `1px solid ${h ? (danger ? 'var(--rd)' : 'var(--3eg)') : 'var(--bd)'}`,
         color: h ? (danger ? 'var(--rd)' : 'var(--3eg)') : 'var(--t2)',
-        padding: '4px 10px', borderRadius: 5, fontSize: 12, fontFamily: 'Montserrat', fontWeight: 600, cursor: 'pointer', transition: 'all .12s'
+        padding: '3px 0', borderRadius: 5, fontSize: 11.5, fontFamily: 'Montserrat', fontWeight: 600, cursor: 'pointer', transition: 'all .12s', width: 62, textAlign: 'center'
       }}>{children}</button>
   );
 };

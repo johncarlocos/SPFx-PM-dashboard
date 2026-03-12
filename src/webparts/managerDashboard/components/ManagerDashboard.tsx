@@ -9,7 +9,8 @@ import styles from './ManagerDashboard.module.scss';
 import type { IManagerDashboardProps } from './IManagerDashboardProps';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const window: Window & { XLSX: any; jspdf: any };
+declare const window: Window & { jspdf: any };
+import * as XLSX from 'xlsx';
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 import logoImg from '../assets/3edge-logo.png';
@@ -773,9 +774,6 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const XLSX: any = window.XLSX;
-        if (!XLSX) { setError('SheetJS (XLSX) library is not loaded.'); return; }
         const data = new Uint8Array(ev.target!.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -1234,7 +1232,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
   const headerBg: React.CSSProperties = {
     background: 'var(--hdr)', display: 'flex', alignItems: 'center',
-    padding: '0 20px', height: 56, flexShrink: 0, position: 'sticky', top: 0, zIndex: 200,
+    padding: '0 20px', height: 56, flexShrink: 0, position: 'relative', zIndex: 200,
     boxShadow: '0 2px 12px rgba(0,0,0,.18)'
   };
 

@@ -11,10 +11,36 @@ import type { IManagerDashboardProps } from './IManagerDashboardProps';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const window: Window & { XLSX: any; jspdf: any };
 
-// ── Image placeholders (replace with actual base64 data URIs) ─────────────────
-const IMG_LOGO_DASH = '';
-// IMG_HEADER and IMG_LOGO_PDF reserved for PDF generation
-const IMG_LOGO_PDF = '';
+// ── Assets ────────────────────────────────────────────────────────────────────
+import logoImg from '../assets/3edge-logo.png';
+const IMG_LOGO_DASH: string = logoImg;
+const IMG_LOGO_PDF: string = logoImg;
+
+// ── Montserrat local fonts ─────────────────────────────────────────────────────
+import _fExtraLight from '../assets/Montserrat-ExtraLight.ttf';
+import _fBold from '../assets/Montserrat-Bold.ttf';
+import _fBoldI from '../assets/Montserrat-BoldItalic.ttf';
+import _fExtraBold from '../assets/Montserrat-ExtraBold.ttf';
+import _fExtraBoldI from '../assets/Montserrat-ExtraBoldItalic.ttf';
+import _fBlack from '../assets/Montserrat-Black.ttf';
+import _fBlackI from '../assets/Montserrat-BlackItalic.ttf';
+
+(function injectMontserrat(): void {
+  const id = '3edge-montserrat';
+  if (document.getElementById(id)) return;
+  const s = document.createElement('style');
+  s.id = id;
+  s.textContent = [
+    `@font-face{font-family:'Montserrat';font-weight:200;font-style:normal;src:url('${_fExtraLight}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:700;font-style:normal;src:url('${_fBold}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:700;font-style:italic;src:url('${_fBoldI}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:800;font-style:normal;src:url('${_fExtraBold}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:800;font-style:italic;src:url('${_fExtraBoldI}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:900;font-style:normal;src:url('${_fBlack}') format('truetype')}`,
+    `@font-face{font-family:'Montserrat';font-weight:900;font-style:italic;src:url('${_fBlackI}') format('truetype')}`,
+  ].join('');
+  document.head.appendChild(s);
+})();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Mod = 'projects' | 'rfis';

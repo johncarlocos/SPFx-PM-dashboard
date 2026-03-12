@@ -13,12 +13,21 @@ export class SharePointService {
     this._http = spHttpClient;
   }
 
+  private parseDate(val: string | null | undefined): string {
+    if (!val) return '';
+    // OData v3 format: /Date(1234567890000)/
+    const m = val.match(/\/Date\((\d+)\)\//);
+    if (m) return new Date(Number(m[1])).toISOString().substring(0, 10);
+    return val.substring(0, 10);
+  }
+
+  // Use plain fetch for GETs — SPHttpClient concatenates its own Accept header with ours,
+  // producing an invalid combined value that SharePoint rejects with 406.
   private async spGet(path: string): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const r: SPHttpClientResponse = await this._http.get(
-      this._siteUrl + path,
-      SPHttpClient.configurations.v1,
-      { headers: { Accept: 'application/json;odata=nometadata' } }
-    );
+    const r = await fetch(this._siteUrl + path, {
+      credentials: 'include',
+      headers: { Accept: 'application/json;odata=nometadata' }
+    });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); msg = e.error?.message?.value || msg; } catch (_x) { /* ignore */ }
@@ -29,10 +38,7 @@ export class SharePointService {
 
   private async spPost(path: string, body: any): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const opts: ISPHttpClientOptions = {
-      headers: {
-        Accept: 'application/json;odata=nometadata',
-        'Content-Type': 'application/json;odata=nometadata'
-      },
+      headers: { 'Content-Type': 'application/json;odata=nometadata' },
       body: JSON.stringify(body)
     };
     const r: SPHttpClientResponse = await this._http.post(
@@ -52,7 +58,6 @@ export class SharePointService {
   private async spMerge(path: string, body: any): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const opts: ISPHttpClientOptions = {
       headers: {
-        Accept: 'application/json;odata=nometadata',
         'Content-Type': 'application/json;odata=nometadata',
         'X-HTTP-Method': 'MERGE',
         'IF-MATCH': '*'
@@ -106,10 +111,10 @@ export class SharePointService {
       email: i.email || '',
       mobile: i.mobile || '',
       clientNum: i.clientNum || '',
-      startDate: i.startDate ? i.startDate.substring(0, 10) : '',
-      finishDate: i.finishDate ? i.finishDate.substring(0, 10) : '',
-      ifaDate: i.ifaDate ? i.ifaDate.substring(0, 10) : '',
-      ifcDate: i.ifcDate ? i.ifcDate.substring(0, 10) : '',
+      startDate: this.parseDate(i.startDate),
+      finishDate: this.parseDate(i.finishDate),
+      ifaDate: this.parseDate(i.ifaDate),
+      ifcDate: this.parseDate(i.ifcDate),
       detailers: i.detailers || '',
       isEwo: i.isEwo || false,
       ewoNum: i.ewoNum || '',
@@ -176,12 +181,12 @@ export class SharePointService {
       by: i.by || '',
       byCompany: i.byCompany || '',
       cc: i.cc || '',
-      dateIssued: i.dateIssued ? i.dateIssued.substring(0, 10) : '',
-      dateRequired: i.dateRequired ? i.dateRequired.substring(0, 10) : '',
+      dateIssued: this.parseDate(i.dateIssued),
+      dateRequired: this.parseDate(i.dateRequired),
       description: i.description || '',
       attachments: i.attachments || '',
       clientRfi: i.clientRfi || '',
-      dateReceived: i.dateReceived ? i.dateReceived.substring(0, 10) : '',
+      dateReceived: this.parseDate(i.dateReceived),
       response: i.response || '',
       responseDesc: i.responseDesc || '',
       sentBy: i.sentBy || '',

@@ -37,7 +37,9 @@
 
 .dashboardRoot {
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  min-height: 100vh;
+  height: calc(100vh - 90px);
+  min-height: 600px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--bg);

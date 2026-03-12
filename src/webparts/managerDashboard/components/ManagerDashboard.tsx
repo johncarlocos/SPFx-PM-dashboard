@@ -309,9 +309,6 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
             {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </FF>
-        <FF label="Year">
-          <input style={inp} type="number" value={d.year} onChange={e => set('year', Number(e.target.value))} />
-        </FF>
         <FF label="Detailers" span2>
           <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated detailer names" />
         </FF>
@@ -1441,10 +1438,9 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             <td style={{ padding: '11px 12px', minWidth: 130 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
                             <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}><Tag s={p.status} /></td>
                             <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 6 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                 <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
                                 {role === 'manager' && <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>}
-                                {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete project "' + p.projNum + ' — ' + p.name + '"?', () => { deleteProject(p).catch(() => undefined); })} danger title="Delete project">Del</IBtn>}
                               </div>
                             </td>
                           </tr>
@@ -1466,10 +1462,9 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <td style={{ padding: '9px 12px', minWidth: 130 }}><RfiBar allowed={ewo.rfisAllowed} used={ewoRfis} /></td>
                                 <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
                                 <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', gap: 6 }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                     <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
                                     {role === 'manager' && <IBtn onClick={() => openProjForm(ewo)} title="Edit EWO">Edit</IBtn>}
-                                    {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>}
                                   </div>
                                 </td>
                               </tr>

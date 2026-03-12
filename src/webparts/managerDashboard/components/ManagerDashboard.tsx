@@ -269,10 +269,22 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
       <SDiv label={d.isEwo ? 'EWO (Extra Work Order) Details' : 'Project Details'} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
         <FF label="Project #">
-          <input style={inp} value={d.projNum} onChange={e => set('projNum', e.target.value)} placeholder="e.g. 2601" />
+          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--bd)', borderRadius: 6, overflow: 'hidden', background: 'var(--s1)' }}>
+            <span style={{ padding: '0 8px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', background: 'var(--s2)', borderRight: '1px solid var(--bd)', height: '100%', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>3E-</span>
+            <input style={{ ...inp, border: 'none', borderRadius: 0, flex: 1, minWidth: 0 }}
+              value={d.projNum.startsWith('3E-') ? d.projNum.slice(3) : d.projNum}
+              onChange={e => set('projNum', '3E-' + e.target.value.replace(/^3E-/i, ''))}
+              placeholder="500" />
+          </div>
         </FF>
         <FF label="Quote #">
-          <input style={inp} value={d.quoteNum} onChange={e => set('quoteNum', e.target.value)} placeholder="e.g. Q2601" />
+          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--bd)', borderRadius: 6, overflow: 'hidden', background: 'var(--s1)' }}>
+            <span style={{ padding: '0 8px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', background: 'var(--s2)', borderRight: '1px solid var(--bd)', height: '100%', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>QU-</span>
+            <input style={{ ...inp, border: 'none', borderRadius: 0, flex: 1, minWidth: 0 }}
+              value={d.quoteNum.startsWith('QU-') ? d.quoteNum.slice(3) : d.quoteNum}
+              onChange={e => set('quoteNum', 'QU-' + e.target.value.replace(/^QU-/i, ''))}
+              placeholder="2601" />
+          </div>
         </FF>
         <FF label="Project Name" span2>
           <input style={inp} value={d.name} onChange={e => set('name', e.target.value)} placeholder="Project name" />

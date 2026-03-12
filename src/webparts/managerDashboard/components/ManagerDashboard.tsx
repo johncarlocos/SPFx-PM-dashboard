@@ -896,7 +896,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
   // ── View
   const [mod, setMod] = React.useState<Mod>('projects');
-  const [clock, setClock] = React.useState('');
+  const [clock, setClock] = React.useState({ aus: '', ph: '' });
   const [role, setRole] = React.useState<Role>('manager');
   const [spMode, setSpMode] = React.useState<SpMode>('detecting');
 
@@ -955,7 +955,11 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   // ── Live clock
   React.useEffect(() => {
     const tick = (): void => {
-      setClock(new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      const now = new Date();
+      setClock({
+        aus: now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Australia/Sydney' }),
+        ph:  now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Manila' })
+      });
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -1233,7 +1237,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 22 }}>
           {IMG_LOGO_DASH
-            ? <img src={IMG_LOGO_DASH} alt="3 Edge" style={{ height: 32 }} />
+            ? <img src={IMG_LOGO_DASH} alt="3 Edge" style={{ height: 84 }} />
             : (
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
                 <span style={{ fontFamily: 'Montserrat', fontWeight: 900, fontSize: 14, color: 'var(--3eg)', letterSpacing: '.18em' }}>3 EDGE</span>
@@ -1312,7 +1316,14 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
         </div>
 
         {/* Clock + user */}
-        <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 11.5, color: '#8a9bb0', whiteSpace: 'nowrap' }}>{clock}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', whiteSpace: 'nowrap', gap: 2 }}>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0' }}>
+            <span style={{ color: '#5a7a9a', marginRight: 4 }}>AUS</span>{clock.aus}
+          </div>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0' }}>
+            <span style={{ color: '#5a7a9a', marginRight: 4 }}>PH</span>{clock.ph}
+          </div>
+        </div>
         {props.userDisplayName && (
           <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0', marginLeft: 12, whiteSpace: 'nowrap' }}>{props.userDisplayName}</div>
         )}

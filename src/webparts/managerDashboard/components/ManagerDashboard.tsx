@@ -1654,7 +1654,14 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
       >
         {panel.type === 'projForm' && (
           <ProjForm
-            initial={panel.proj || emptyProj()}
+            initial={panel.proj || (() => {
+              const p = emptyProj();
+              const nums = projects
+                .map(x => x.projNum.startsWith('3E-') ? parseInt(x.projNum.slice(3), 10) : NaN)
+                .filter(n => !isNaN(n));
+              p.projNum = '3E-' + (nums.length > 0 ? Math.max(...nums) + 1 : 500);
+              return p;
+            })()}
             isNew={!panel.proj}
             projects={projects}
             onSave={(d) => { saveProject(d, !panel.proj).catch(() => undefined); }}

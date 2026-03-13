@@ -8,8 +8,7 @@ import { SharePointService } from '../../../shared/services/SharePointService';
 import styles from './ManagerDashboard.module.scss';
 import type { IManagerDashboardProps } from './IManagerDashboardProps';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const window: Window & { jspdf: any };
+import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 // ── Assets ────────────────────────────────────────────────────────────────────
@@ -91,8 +90,6 @@ const selStyle: React.CSSProperties = { ...inp, cursor: 'pointer' };
 // ── PDF Generator ─────────────────────────────────────────────────────────────
 function generateRfiPdf(rfi: IRfi, proj: IProject | undefined): void {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jsPDF = (window.jspdf as any).jsPDF;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc: any = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pw = 210; const ph = 297;

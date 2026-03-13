@@ -1595,7 +1595,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                   {r.impacted === 'Yes' ? ('Yes (' + rfiTot(r).toFixed(1) + 'h)') : 'No'}
                                 </td>
                                 <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', gap: 6 }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                     <IBtn onClick={() => openRfiDetail(r, proj)} title="View RFI">View</IBtn>
                                     {role === 'manager' && <IBtn onClick={() => openRfiForm(r, proj)} title="Edit RFI">Edit</IBtn>}
                                     {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete RFI "' + r.rfiNum + '"?', () => { deleteRfi(r).catch(() => undefined); })} danger title="Delete RFI">Del</IBtn>}

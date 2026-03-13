@@ -1232,7 +1232,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
     const dir = isRfi ? rSDir : sDir;
     return (
       <th onClick={() => isRfi ? onRSort(col) : onSort(col)}
-        style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: active === col ? 'var(--3eg)' : 'var(--t3)', cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', userSelect: 'none', background: 'var(--s2)' }}>
+        style={{ padding: '8px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: active === col ? 'var(--3eg)' : 'var(--t3)', cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', userSelect: 'none', background: 'var(--s2)' }}>
         {label}<span style={{ opacity: 0.6 }}>{sortArrow(col, active, dir)}</span>
       </th>
     );
@@ -1240,7 +1240,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
   // ── Plain th
   const ThPlain: React.FC<{ label: string }> = ({ label }) => (
-    <th style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t3)', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', background: 'var(--s2)' }}>{label}</th>
+    <th style={{ padding: '8px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t3)', whiteSpace: 'nowrap', borderBottom: '2px solid var(--bd)', textAlign: 'left', background: 'var(--s2)' }}>{label}</th>
   );
 
   const headerBg: React.CSSProperties = {
@@ -1394,12 +1394,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               )}
             </div>
 
-            <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+              <div style={{ overflowX: 'auto', borderRadius: 8 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
                   <thead>
                     <tr>
-                      <th style={{ width: 28, background: 'var(--s2)', borderBottom: '2px solid var(--bd)' }} />
+                      <th style={{ width: 20, background: 'var(--s2)', borderBottom: '2px solid var(--bd)' }} />
                       <Th col="projNum" label="Project #" />
                       <Th col="quoteNum" label="Quote #" />
                       <Th col="name" label="Name" />
@@ -1438,17 +1438,17 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 </button>
                               )}
                             </td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.name}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.company || '—'}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
-                            <td style={{ padding: '11px 12px', minWidth: 160 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
-                            <td style={{ padding: '11px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
-                            <td style={{ padding: '11px 12px', minWidth: 130 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
-                            <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}><Tag s={p.status} /></td>
-                            <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(p)}>{p.name}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.company || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
+                            <td style={{ padding: '9px 6px', minWidth: 130 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
+                            <td style={{ padding: '9px 6px', minWidth: 110 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
+                            <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}><Tag s={p.status} /></td>
+                            <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                 <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
                                 {role === 'manager' && <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>}
@@ -1460,19 +1460,19 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             return (
                               <tr key={ewo.id} className={styles.ewoRow} style={{ background: 'rgba(42,158,42,0.035)', borderBottom: '1px solid var(--s3)' }}>
                                 <td style={{ padding: '0 0 0 8px', width: 28 }} />
-                                <td style={{ padding: '9px 12px 9px 24px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>
+                                <td style={{ padding: '7px 6px 7px 20px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>
                                   <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
                                 </td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12, color: 'var(--t2)', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.company || '—'}</td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
-                                <td style={{ padding: '9px 12px', minWidth: 160 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.startDate)}</td>
-                                <td style={{ padding: '9px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.finishDate)}</td>
-                                <td style={{ padding: '9px 12px', minWidth: 130 }}><RfiBar allowed={ewo.rfisAllowed} used={ewoRfis} /></td>
-                                <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
-                                <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.company || '—'}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
+                                <td style={{ padding: '7px 6px', minWidth: 130 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.startDate)}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.finishDate)}</td>
+                                <td style={{ padding: '7px 6px', minWidth: 110 }}><RfiBar allowed={ewo.rfisAllowed} used={ewoRfis} /></td>
+                                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
+                                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                     <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
                                     {role === 'manager' && <IBtn onClick={() => openProjForm(ewo)} title="Edit EWO">Edit</IBtn>}

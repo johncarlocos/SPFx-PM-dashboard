@@ -94,36 +94,35 @@ function generateRfiPdf(rfi: IRfi, proj: IProject | undefined): void {
     const doc: any = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pw = 210; const ph = 297;
     const ml = 15; const mr = 15; const tw = pw - ml - mr;
-    let y = 34;
+    const hdrH = 32;
+    let y = hdrH + 6;
 
     // Header background
     doc.setFillColor(17, 20, 24);
-    doc.rect(0, 0, pw, 28, 'F');
+    doc.rect(0, 0, pw, hdrH, 'F');
 
-    // Logo text
-    doc.setTextColor(42, 158, 42);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('3 EDGE DESIGN', ml, 12);
-    doc.setFontSize(8);
-    doc.setTextColor(138, 155, 176);
-    doc.text('STRUCTURAL STEEL DETAILING', ml, 17);
-
-    // RFI title
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REQUEST FOR INFORMATION', pw - mr, 11, { align: 'right' });
-    doc.setFontSize(11);
-    doc.setTextColor(42, 158, 42);
-    doc.text(rfi.rfiNum, pw - mr, 18, { align: 'right' });
-    doc.setTextColor(138, 155, 176);
-    doc.setFontSize(8);
-    doc.text('Revision: ' + (rfi.revision || 'A'), pw - mr, 23, { align: 'right' });
-
+    // Logo (left side)
     if (IMG_LOGO_PDF) {
-      doc.addImage(IMG_LOGO_PDF, 'PNG', pw - 45, 4, 28, 18);
+      doc.addImage(IMG_LOGO_PDF, 'PNG', ml, 5, 38, 22);
     }
+
+    // Divider line between logo and title
+    doc.setDrawColor(42, 158, 42);
+    doc.setLineWidth(0.4);
+    doc.line(ml + 42, 7, ml + 42, hdrH - 7);
+
+    // RFI title (right of divider)
+    const titleX = ml + 47;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REQUEST FOR INFORMATION', titleX, 14);
+    doc.setFontSize(10);
+    doc.setTextColor(42, 158, 42);
+    doc.text(rfi.rfiNum, titleX, 22);
+    doc.setTextColor(138, 155, 176);
+    doc.setFontSize(7.5);
+    doc.text('Revision: ' + (rfi.revision || 'A'), titleX, 28);
 
     // Helper: section header
     const sectionHeader = (title: string): void => {

@@ -476,11 +476,12 @@ interface RfiFormProps {
   initial: IRfi;
   isNew: boolean;
   projects: IProject[];
+  rfis: IRfi[];
   onSave: (r: IRfi) => void;
   onCancel: () => void;
 }
 
-const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
+const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSave, onCancel }) => {
   const [d, setD] = React.useState<IRfi>({ ...initial });
 
   const set = <K extends keyof IRfi>(k: K, v: IRfi[K]): void => {
@@ -489,7 +490,13 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, onSave, onC
 
   const onProjectChange = (projId: string): void => {
     const p = projects.find(x => x.id === projId);
-    setD(prev => ({ ...prev, projectId: projId, projectName: p ? p.name : '' }));
+    const updates: Partial<IRfi> = { projectId: projId, projectName: p ? p.name : '' };
+    if (isNew && p) {
+      const count = rfis.filter(r => r.projectId === projId).length;
+      const seq = String(count + 1).padStart(3, '0');
+      updates.rfiNum = `${p.projNum}-RFI-${seq}`;
+    }
+    setD(prev => ({ ...prev, ...updates }));
   };
 
   const totalImpact = (d.model || 0) + (d.connections || 0) + (d.checking || 0) + (d.drawings || 0) + (d.admin || 0);
@@ -783,15 +790,21 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
         let hrsCol = -1;
         for (let i = 0; i < Math.min(rows.length, 10); i++) {
           const row = rows[i] as unknown[];
+          let localProjCol = -1;
+          let localHrsCol = -1;
           for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j] || '').toLowerCase();
-            if (cell.indexOf('project') >= 0) projCol = j;
-            if (cell.indexOf('hour') >= 0 || cell.indexOf('total') >= 0) hrsCol = j;
+            const cell = String(row[j] || '').toLowerCase().trim();
+            if (cell.indexOf('project') >= 0 || cell === 'task' || cell === 'task name') localProjCol = j;
+            if (cell.indexOf('hour') >= 0 || cell.indexOf('total') >= 0 ||
+                cell.indexOf('time') >= 0 || cell.indexOf('duration') >= 0 ||
+                cell.indexOf('worked') >= 0 || cell.indexOf('tracked') >= 0) localHrsCol = j;
           }
+          if (localProjCol >= 0) projCol = localProjCol;
+          if (localHrsCol >= 0) hrsCol = localHrsCol;
           if (projCol >= 0 && hrsCol >= 0) { hRow = i; break; }
         }
         if (hRow < 0 || projCol < 0 || hrsCol < 0) {
-          setError('Could not find Project / Hours columns. Ensure the XLS has "Project" and "Hours" (or "Total") headers.');
+          setError('Could not find Project / Hours columns. Ensure the XLS has "Project" (or "Task") and "Hours" (or "Time"/"Duration"/"Tracked") headers.');
           return;
         }
         const updates: TdPreviewRow[] = [];
@@ -1687,6 +1700,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             })()}
             isNew={!panel.rfi || !panel.rfi.spId}
             projects={projects}
+            rfis={rfis}
             onSave={(d) => { saveRfi(d, !panel.rfi || !panel.rfi.spId).catch(() => undefined); }}
             onCancel={() => setPanel({ type: null })}
           />

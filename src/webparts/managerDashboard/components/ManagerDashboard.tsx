@@ -645,7 +645,7 @@ interface RfiDetailProps {
   rfi: IRfi;
   proj: IProject | undefined;
   isManager: boolean;
-  onSendEmail: (to: string, cc: string, subject: string, body: string) => Promise<void>;
+  onSendEmail: (to: string, cc: string, subject: string, body: string, blob: Blob, fileName: string) => Promise<void>;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -691,7 +691,7 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, onSendEmail
       '<strong>Description:</strong><br>' + (rfi.description || '—') + '<br><br>' +
       'Please respond by ' + fmtD(rfi.dateRequired) + '.<br><br>' +
       'Kind regards,<br>' + (rfi.by || '') + '<br>3 Edge Design';
-    onSendEmail(recipients, rfi.cc || '', subject, body).catch(console.error);
+    onSendEmail(recipients, rfi.cc || '', subject, body, blob, fileName).catch(console.error);
   };
 
   return (
@@ -1689,9 +1689,36 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             rfi={panel.rfi}
             proj={panel.parentProj || projects.filter(p => p.id === panel.rfi!.projectId)[0]}
             isManager={role === 'manager'}
-            onSendEmail={async (to, cc, subject, body) => {
-              await spService.current.sendEmail(to, cc, subject, body);
-              toast('Email sent to ' + to);
+            onSendEmail={async (to, cc, subject, body, blob, fileName) => {
+              try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                bytes.forEach(b => { binary += String.fromCharCode(b); });
+                const base64 = btoa(binary);
+                const toList = to.split(/[,;]/).map(s => s.trim()).filter(Boolean)
+                  .map(addr => ({ emailAddress: { address: addr } }));
+                const ccList = cc ? cc.split(/[,;]/).map(s => s.trim()).filter(Boolean)
+                  .map(addr => ({ emailAddress: { address: addr } })) : [];
+                const client = await props.msGraphClientFactory.getClient('3');
+                await client.api('/me/sendMail').post({
+                  message: {
+                    subject,
+                    body: { contentType: 'HTML', content: body },
+                    toRecipients: toList,
+                    ccRecipients: ccList,
+                    attachments: [{
+                      '@odata.type': '#microsoft.graph.fileAttachment',
+                      name: fileName,
+                      contentType: 'application/pdf',
+                      contentBytes: base64
+                    }]
+                  }
+                });
+                toast('Email with PDF sent to ' + to);
+              } catch (e) {
+                toast('Email failed: ' + String(e));
+              }
             }}
             onEdit={() => setPanel({ type: 'rfiForm', rfi: panel.rfi, parentProj: panel.parentProj })}
             onDelete={() => {

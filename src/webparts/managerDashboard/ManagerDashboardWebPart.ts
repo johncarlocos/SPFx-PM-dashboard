@@ -22,7 +22,8 @@ export default class ManagerDashboardWebPart extends BaseClientSideWebPart<IMana
       {
         siteUrl: this.context.pageContext.web.absoluteUrl,
         userDisplayName: this.context.pageContext.user.displayName,
-        spHttpClient: this.context.spHttpClient
+        spHttpClient: this.context.spHttpClient,
+        msGraphClientFactory: this.context.msGraphClientFactory
       }
     );
 

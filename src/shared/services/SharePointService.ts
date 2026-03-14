@@ -180,6 +180,37 @@ export class SharePointService {
     await this.spDelete(`/_api/web/lists/getbytitle('${LIST_PROJ}')/items(${spId})`);
   }
 
+  // ── Email ─────────────────────────────────────────────────
+
+  public async sendEmail(to: string, cc: string, subject: string, body: string): Promise<void> {
+    const digest = await this.getDigest();
+    const toList = to.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    const ccList = cc ? cc.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
+    const r = await fetch(this._siteUrl + '/_api/SP.Utilities.Utility.SendEmail', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-Type': 'application/json;odata=verbose',
+        'X-RequestDigest': digest
+      },
+      body: JSON.stringify({
+        properties: {
+          '__metadata': { type: 'SP.Utilities.EmailProperties' },
+          'To': { results: toList },
+          'CC': { results: ccList },
+          'Subject': subject,
+          'Body': body
+        }
+      })
+    });
+    if (!r.ok) {
+      let msg = 'Email failed: HTTP ' + r.status;
+      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      throw new Error(msg);
+    }
+  }
+
   // ── RFI CRUD ──────────────────────────────────────────────
 
   public async loadRfis(): Promise<IRfi[]> {

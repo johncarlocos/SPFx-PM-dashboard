@@ -1434,7 +1434,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               color: role === r ? (r === 'manager' ? '#111418' : '#fff') : '#8a9bb0',
               transition: 'all .15s'
             }}>
-              {r}
+              {r === 'staff' ? 'Team' : r}
             </button>
           ))}
         </div>
@@ -1452,6 +1452,13 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
           <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, color: '#8a9bb0', marginLeft: 12, whiteSpace: 'nowrap' }}>{props.userDisplayName}</div>
         )}
       </header>
+
+      {/* ── Values Banner ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 32, padding: '6px 24px', background: 'linear-gradient(90deg, #1a1e24 0%, #232830 50%, #1a1e24 100%)', borderBottom: '1px solid rgba(42,158,42,0.25)', flexShrink: 0 }}>
+        {['Trust', 'Collaboration', 'Accuracy', 'Progress'].map(v => (
+          <span key={v} style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--3eg)' }}>{v}</span>
+        ))}
+      </div>
 
       {/* ── Staff Banner ─────────────────────────────────────────── */}
       {role === 'staff' && (

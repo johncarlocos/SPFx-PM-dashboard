@@ -1754,8 +1754,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                 <button onClick={() => openRfiForm(null)} style={{
                   fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
                   textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
-                  background: 'var(--3eg)', color: '#1a2030', border: 'none',
-                  boxShadow: '0 2px 8px rgba(42,158,42,.3)'
+                  background: '#2563eb', color: '#fff', border: 'none',
+                  boxShadow: '0 2px 8px rgba(37,99,235,.3)'
                 }}>
                   + New RFI
                 </button>

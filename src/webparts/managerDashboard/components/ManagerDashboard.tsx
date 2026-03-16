@@ -254,10 +254,43 @@ interface ProjFormProps {
 }
 
 const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
-  const [d, setD] = React.useState<IProject>({ ...initial });
+  const [dupError, setDupError] = React.useState('');
+
+  // Auto-calculate next available project number for new projects
+  const nextNum = React.useMemo(() => {
+    const nums = projects.map(p => {
+      const m = p.projNum.match(/^3E-(\d+)$/i);
+      return m ? parseInt(m[1], 10) : 0;
+    });
+    const max = nums.length > 0 ? Math.max(...nums) : 499;
+    return String(max + 1);
+  }, [projects]);
+
+  const [d, setD] = React.useState<IProject>(() => {
+    if (isNew && !initial.projNum) {
+      return { ...initial, projNum: '3E-' + nextNum };
+    }
+    return { ...initial };
+  });
 
   const set = <K extends keyof IProject>(k: K, v: IProject[K]): void => {
     setD(prev => ({ ...prev, [k]: v }));
+    if (k === 'projNum') setDupError('');
+  };
+
+  const usedNums = React.useMemo(() => {
+    const s = new Set(projects.map(p => p.projNum.toUpperCase()));
+    // Exclude current project's original number when editing
+    if (!isNew && initial.projNum) s.delete(initial.projNum.toUpperCase());
+    return s;
+  }, [projects, isNew, initial.projNum]);
+
+  const handleSave = (): void => {
+    if (usedNums.has(d.projNum.toUpperCase())) {
+      setDupError('Project # ' + d.projNum + ' is already in use. Choose a different number.');
+      return;
+    }
+    onSave(d);
   };
 
   const parentProjects = projects.filter(p => !p.isEwo && p.id !== d.id);
@@ -369,8 +402,9 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         )}
       </div>
 
+      {dupError && <div style={{ color: 'var(--am)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{dupError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
-        <BtnPrimary onClick={() => onSave(d)}>{isNew ? 'CREATE PROJECT' : 'SAVE CHANGES'}</BtnPrimary>
+        <BtnPrimary onClick={handleSave}>{isNew ? 'CREATE PROJECT' : 'SAVE CHANGES'}</BtnPrimary>
         <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>

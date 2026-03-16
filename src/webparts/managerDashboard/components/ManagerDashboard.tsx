@@ -244,6 +244,161 @@ function generateRfiPdf(rfi: IRfi, proj: IProject | undefined): Blob | undefined
   }
 }
 
+// ── Project PDF Generator ─────────────────────────────────────────────────────
+function generateProjectPdf(proj: IProject, rfis: IRfi[], ewos: IProject[]): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: any = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = 210; const ph = 297;
+    const ml = 15; const mr = 15; const tw = pw - ml - mr;
+    const hdrH = 32;
+    let y = hdrH + 6;
+
+    // Header background
+    doc.setFillColor(17, 20, 24);
+    doc.rect(0, 0, pw, hdrH, 'F');
+
+    // Logo
+    if (IMG_LOGO_PDF) {
+      doc.addImage(IMG_LOGO_PDF, 'PNG', ml, 5, 38, 22);
+    }
+
+    // Divider
+    doc.setDrawColor(42, 158, 42);
+    doc.setLineWidth(0.4);
+    doc.line(ml + 42, 7, ml + 42, hdrH - 7);
+
+    // Title
+    const titleX = ml + 47;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PROJECT REPORT', titleX, 14);
+    doc.setFontSize(10);
+    doc.setTextColor(42, 158, 42);
+    doc.text(proj.projNum, titleX, 22);
+    doc.setTextColor(138, 155, 176);
+    doc.setFontSize(8);
+    doc.text(proj.name, titleX, 28);
+
+    // Helpers
+    const checkPage = (need: number): void => {
+      if (y + need > ph - 15) { doc.addPage(); y = 15; }
+    };
+
+    const sectionHeader = (title: string): void => {
+      checkPage(12);
+      doc.setFillColor(240, 242, 245);
+      doc.rect(ml, y, tw, 7, 'F');
+      doc.setDrawColor(208, 213, 222);
+      doc.rect(ml, y, tw, 7, 'S');
+      doc.setFillColor(42, 158, 42);
+      doc.rect(ml, y, 3, 7, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 32, 48);
+      doc.text(title, ml + 5, y + 4.5);
+      y += 9;
+    };
+
+    const row2 = (l1: string, v1: string, l2: string, v2: string): void => {
+      checkPage(8);
+      const cw = tw / 2;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(l1.toUpperCase(), ml, y + 3.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(26, 32, 48);
+      doc.text(String(v1 || '—'), ml + 28, y + 3.5, { maxWidth: cw - 30 });
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 110, 136);
+      doc.text(l2.toUpperCase(), ml + cw, y + 3.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(26, 32, 48);
+      doc.text(String(v2 || '—'), ml + cw + 28, y + 3.5, { maxWidth: cw - 30 });
+      doc.setDrawColor(208, 213, 222);
+      doc.line(ml, y + 6, ml + tw, y + 6);
+      y += 7;
+    };
+
+    // Project Details
+    sectionHeader('PROJECT DETAILS');
+    row2('Project #', proj.projNum, 'Quote #', proj.quoteNum || '—');
+    row2('Name', proj.name, 'Status', proj.status);
+    row2('Company', proj.company || '—', 'Contact', proj.contact || '—');
+    row2('Email', proj.email || '—', 'Mobile', proj.mobile || '—');
+    row2('Client Ref #', proj.clientNum || '—', 'Client PO#', proj.clientp0 || '—');
+    if (proj.detailers) row2('Detailers', proj.detailers, '', '');
+    y += 3;
+
+    // Dates
+    sectionHeader('DATES');
+    row2('Start Date', fmtD(proj.startDate), 'Finish Date', fmtD(proj.finishDate));
+    row2('IFA Date', fmtD(proj.ifaDate), 'IFC Date', fmtD(proj.ifcDate));
+    y += 3;
+
+    // Hours
+    sectionHeader('HOURS & RFIS');
+    row2('Hours Allowed', String(proj.hrsAllowed), 'Hours Used', String(proj.hrsUsed));
+    row2('RFIs Allowed', String(proj.rfisAllowed), 'RFIs Used', String(rfis.length));
+    y += 3;
+
+    // RFIs
+    if (rfis.length > 0) {
+      sectionHeader('RFIS (' + rfis.length + ')');
+      rfis.forEach(r => {
+        checkPage(8);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(42, 158, 42);
+        doc.text(r.rfiNum, ml, y + 3.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 48);
+        doc.text(r.rfiType + '  |  ' + r.status + '  |  Issued: ' + fmtD(r.dateIssued), ml + 35, y + 3.5);
+        doc.setDrawColor(208, 213, 222);
+        doc.line(ml, y + 6, ml + tw, y + 6);
+        y += 7;
+      });
+      y += 3;
+    }
+
+    // EWOs
+    if (ewos.length > 0) {
+      sectionHeader('EXTRA WORK ORDERS (' + ewos.length + ')');
+      ewos.forEach(e => {
+        checkPage(8);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(212, 136, 10);
+        doc.text(e.ewoNum || e.projNum, ml, y + 3.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 48);
+        doc.text((e.name || '—') + '  |  ' + e.status + '  |  ' + e.hrsUsed + 'h used', ml + 35, y + 3.5);
+        doc.setDrawColor(208, 213, 222);
+        doc.line(ml, y + 6, ml + tw, y + 6);
+        y += 7;
+      });
+    }
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(138, 155, 176);
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.text('Generated by 3 Edge Design Project Tracker  •  ' + new Date().toLocaleDateString('en-AU'), ml, ph - 8);
+      doc.text('Page ' + i + ' of ' + pages, pw - mr, ph - 8, { align: 'right' });
+    }
+
+    const fileName = 'Project_' + proj.projNum.replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf';
+    doc.save(fileName);
+  } catch (e) {
+    console.error('Project PDF generation error:', e);
+    alert('PDF generation failed.');
+  }
+}
+
 // ── Project Form ───────────────────────────────────────────────────────────────
 interface ProjFormProps {
   initial: IProject;
@@ -1682,6 +1837,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                 <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
                                 {role === 'manager' && <IBtn onClick={() => openProjForm(p)} title="Edit project">Edit</IBtn>}
+                                <IBtn onClick={() => generateProjectPdf(p, rfis.filter(r => r.projectId === p.id), projects.filter(e => e.isEwo && e.parentId === p.id))} title="Export PDF">Export</IBtn>
                               </div>
                             </td>
                           </tr>

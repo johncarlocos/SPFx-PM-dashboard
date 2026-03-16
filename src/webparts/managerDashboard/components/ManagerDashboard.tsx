@@ -43,13 +43,13 @@ import _fBlackI from '../assets/Montserrat-BlackItalic.ttf';
 })();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Mod = 'projects' | 'rfis';
+type Mod = 'projects' | 'rfis' | 'ewos';
 type SDir = 'asc' | 'desc';
 type Role = 'manager' | 'staff';
 type SpMode = 'live' | 'local' | 'detecting';
 
 interface PanelState {
-  type: 'projDetail' | 'projForm' | 'rfiDetail' | 'rfiForm' | null;
+  type: 'projDetail' | 'projForm' | 'rfiDetail' | 'rfiForm' | 'ewoForm' | 'ewoDetail' | null;
   proj?: IProject | null;
   rfi?: IRfi | null;
   parentProj?: IProject | null;
@@ -293,8 +293,6 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
     onSave(d);
   };
 
-  const parentProjects = projects.filter(p => !p.isEwo && p.id !== d.id);
-
   return (
     <div>
       <SDiv label={d.isEwo ? 'EWO (Extra Work Order) Details' : 'Project Details'} />
@@ -377,34 +375,124 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         </FF>
       </div>
 
-      <SDiv label="EWO (Extra Work Order)" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
-        <FF label="Is EWO?">
-          <select style={selStyle} value={d.isEwo ? 'yes' : 'no'} onChange={e => set('isEwo', e.target.value === 'yes')}>
-            <option value="no">No — Standard Project</option>
-            <option value="yes">Yes — Extra Work Order</option>
-          </select>
-        </FF>
-        {d.isEwo && (
-          <FF label="EWO Number">
-            <input style={inp} value={d.ewoNum} onChange={e => set('ewoNum', e.target.value)} placeholder="EWO-001" />
-          </FF>
-        )}
-        {d.isEwo && (
-          <FF label="Parent Project" span2>
-            <select style={selStyle} value={d.parentId || ''} onChange={e => set('parentId', e.target.value || null)}>
-              <option value="">— Select parent project —</option>
-              {parentProjects.map(p => (
-                <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>
-              ))}
-            </select>
-          </FF>
-        )}
-      </div>
-
       {dupError && <div style={{ color: 'var(--am)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{dupError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
         <BtnPrimary onClick={handleSave}>{isNew ? 'CREATE PROJECT' : 'SAVE CHANGES'}</BtnPrimary>
+        <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+      </div>
+    </div>
+  );
+};
+
+// ── EWO Form ──────────────────────────────────────────────────────────────────
+interface EwoFormProps {
+  initial: IProject;
+  isNew: boolean;
+  projects: IProject[];
+  onSave: (p: IProject) => void;
+  onCancel: () => void;
+}
+
+const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
+  const parentProjects = projects.filter(p => !p.isEwo);
+  const allEwos = projects.filter(p => p.isEwo);
+
+  const [d, setD] = React.useState<IProject>(() => {
+    return { ...initial, isEwo: true };
+  });
+
+  const set = <K extends keyof IProject>(k: K, v: IProject[K]): void => {
+    setD(prev => ({ ...prev, [k]: v }));
+  };
+
+  const onParentChange = (parentId: string): void => {
+    const parent = parentProjects.find(p => p.id === parentId);
+    const updates: Partial<IProject> = { parentId: parentId || null };
+    if (isNew && parent) {
+      const count = allEwos.filter(e => e.parentId === parentId).length;
+      const seq = String(count + 1).padStart(3, '0');
+      updates.projNum = parent.projNum + '-EWO-' + seq;
+      updates.ewoNum = parent.projNum + '-EWO-' + seq;
+    }
+    setD(prev => ({ ...prev, ...updates }));
+  };
+
+  const inp: React.CSSProperties = { fontFamily: 'Montserrat', fontSize: 13, padding: '8px 10px', border: '1px solid var(--bd)', borderRadius: 6, background: 'var(--s1)', color: 'var(--t1)', width: '100%', boxSizing: 'border-box' };
+  const selStyle: React.CSSProperties = { ...inp, appearance: 'auto' as React.CSSProperties['appearance'] };
+
+  return (
+    <div>
+      <SDiv label="EWO Details" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Parent Project" span2>
+          <select style={selStyle} value={d.parentId || ''} onChange={e => onParentChange(e.target.value)}>
+            <option value="">— Select parent project —</option>
+            {parentProjects.map(p => (
+              <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>
+            ))}
+          </select>
+        </FF>
+        <FF label="EWO Number">
+          <input style={{ ...inp, background: 'var(--s2)', color: 'var(--t3)' }} value={d.ewoNum || d.projNum} readOnly />
+        </FF>
+        <FF label="Quote #">
+          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--bd)', borderRadius: 6, overflow: 'hidden', background: 'var(--s1)' }}>
+            <span style={{ padding: '0 8px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', background: 'var(--s2)', borderRight: '1px solid var(--bd)', height: '100%', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>QU-</span>
+            <input style={{ ...inp, border: 'none', borderRadius: 0, flex: 1, minWidth: 0 }}
+              value={d.quoteNum.startsWith('QU-') ? d.quoteNum.slice(3) : d.quoteNum}
+              onChange={e => set('quoteNum', 'QU-' + e.target.value.replace(/^QU-/i, ''))} />
+          </div>
+        </FF>
+        <FF label="Project Name" span2>
+          <input style={inp} value={d.name} onChange={e => set('name', e.target.value)} placeholder="EWO name" />
+        </FF>
+        <FF label="Company">
+          <input style={inp} value={d.company} onChange={e => set('company', e.target.value)} />
+        </FF>
+        <FF label="Contact">
+          <input style={inp} value={d.contact} onChange={e => set('contact', e.target.value)} />
+        </FF>
+        <FF label="Email">
+          <input style={inp} type="email" value={d.email} onChange={e => set('email', e.target.value)} />
+        </FF>
+        <FF label="Mobile">
+          <input style={inp} value={d.mobile} onChange={e => set('mobile', e.target.value)} />
+        </FF>
+        <FF label="Client Ref #">
+          <input style={inp} value={d.clientNum} onChange={e => set('clientNum', e.target.value)} />
+        </FF>
+        <FF label="Status">
+          <select style={selStyle} value={d.status} onChange={e => set('status', e.target.value)}>
+            {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </FF>
+      </div>
+
+      <SDiv label="Dates" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Start Date">
+          <input style={inp} type="date" value={d.startDate} onChange={e => set('startDate', e.target.value)} />
+        </FF>
+        <FF label="Finish Date">
+          <input style={inp} type="date" value={d.finishDate} onChange={e => set('finishDate', e.target.value)} />
+        </FF>
+      </div>
+
+      <SDiv label="Hours" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Hours Allowed">
+          <input style={inp} type="number" value={d.hrsAllowed} onChange={e => set('hrsAllowed', Number(e.target.value))} />
+        </FF>
+        <FF label="Hours Used">
+          <input style={inp} type="number" value={d.hrsUsed} onChange={e => set('hrsUsed', Number(e.target.value))} />
+        </FF>
+        <FF label="Detailers">
+          <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated" />
+        </FF>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
+        <BtnPrimary onClick={() => { if (!d.parentId) { alert('Please select a parent project.'); return; } onSave(d); }}>{isNew ? 'CREATE EWO' : 'SAVE CHANGES'}</BtnPrimary>
         <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>
@@ -1034,6 +1122,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
   const [rSDir, setRSDir] = React.useState<SDir>('asc');
   const [rfiExp, setRfiExp] = React.useState<Record<string, boolean>>({});
 
+  // ── EWO filters
+  const [ewoSrch, setEwoSrch] = React.useState('');
+  const [ewoParent, setEwoParent] = React.useState('');
+  const [ewoStFilt, setEwoStFilt] = React.useState('');
+  const [ewoExp, setEwoExp] = React.useState<Record<string, boolean>>({});
+
   // ── Panel
   const [panel, setPanel] = React.useState<PanelState>({ type: null });
 
@@ -1152,6 +1246,31 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
     });
     return m;
   }, [visRfis]);
+
+  // ── Filtered EWOs
+  const visEwos = React.useMemo(() => {
+    return projects.filter(p => {
+      if (!p.isEwo) return false;
+      if (ewoParent && p.parentId !== ewoParent) return false;
+      if (ewoStFilt && p.status !== ewoStFilt) return false;
+      if (ewoSrch) {
+        const q = ewoSrch.toLowerCase();
+        return (p.projNum + p.name + p.company + p.ewoNum).toLowerCase().indexOf(q) >= 0;
+      }
+      return true;
+    });
+  }, [projects, ewoParent, ewoStFilt, ewoSrch]);
+
+  // ── EWOs grouped by parent project
+  const ewosByParent = React.useMemo(() => {
+    const m: Record<string, IProject[]> = {};
+    visEwos.forEach(e => {
+      const pid = e.parentId || 'unknown';
+      if (!m[pid]) m[pid] = [];
+      m[pid].push(e);
+    });
+    return m;
+  }, [visEwos]);
 
   // ── Stat cards
   const mainProjects = projects.filter(p => !p.isEwo);
@@ -1373,7 +1492,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
         {/* Nav Tabs */}
         <div style={{ display: 'flex', gap: 2 }}>
-          {(['projects', 'rfis'] as Mod[]).map((m: Mod) => (
+          {(['projects', 'rfis', 'ewos'] as Mod[]).map((m: Mod) => (
             <button key={m} onClick={() => setMod(m)} style={{
               fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.12em',
               textTransform: 'uppercase', padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
@@ -1381,7 +1500,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               border: mod === m ? '1px solid var(--3eg)' : '1px solid transparent',
               color: mod === m ? 'var(--3eg)' : '#8a9bb0', transition: 'all .15s'
             }}>
-              {m === 'projects' ? 'Projects' : 'RFIs'}
+              {m === 'projects' ? 'Projects' : m === 'rfis' ? 'RFIs' : 'EWOs'}
             </button>
           ))}
         </div>
@@ -1724,6 +1843,115 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             })}
           </div>
         )}
+
+        {/* ═══════════════ EWO TRACKER ═══════════════ */}
+        {mod === 'ewos' && (
+          <div className={styles.fade}>
+            <div style={{ display: 'flex', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
+              <Stat label="Total EWOs" value={visEwos.length} col="var(--am)" sub="extra work orders" />
+              <Stat label="Active" value={visEwos.filter(e => e.status === 'Active').length} col="var(--gn)" sub="in progress" />
+              <Stat label="Complete" value={visEwos.filter(e => e.status === 'Complete').length} col="var(--bl)" sub="delivered" />
+              <Stat label="Total Hrs" value={visEwos.reduce((s, e) => s + e.hrsUsed, 0).toFixed(0) + 'h'} col="var(--am)" sub={'of ' + visEwos.reduce((s, e) => s + e.hrsAllowed, 0).toFixed(0) + 'h allowed'} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...inp, maxWidth: 220 }} placeholder="Search EWOs..." value={ewoSrch} onChange={e => setEwoSrch(e.target.value)} />
+              <select style={{ ...selStyle, maxWidth: 260 }} value={ewoParent} onChange={e => setEwoParent(e.target.value)}>
+                <option value="">All Projects</option>
+                {mainProjects.map(p => <option key={p.id} value={p.id}>{p.projNum} — {p.name}</option>)}
+              </select>
+              <select style={{ ...selStyle, maxWidth: 200 }} value={ewoStFilt} onChange={e => setEwoStFilt(e.target.value)}>
+                <option value="">All Statuses</option>
+                {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div style={{ flex: 1 }} />
+              {role === 'manager' && (
+                <button onClick={() => setPanel({ type: 'ewoForm', proj: null })} style={{
+                  fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                  textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                  background: 'var(--am)', color: '#1a2030', border: 'none',
+                  boxShadow: '0 2px 8px rgba(212,136,10,.3)'
+                }}>
+                  + New EWO
+                </button>
+              )}
+            </div>
+
+            {spLoading && (
+              <div style={{ padding: 32, textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>Loading EWOs...</div>
+            )}
+            {!spLoading && visEwos.length === 0 && (
+              <div style={{ padding: 32, textAlign: 'center', fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t4)' }}>No EWOs found.</div>
+            )}
+            {!spLoading && Object.keys(ewosByParent).map(parentId => {
+              const groupEwos = ewosByParent[parentId];
+              const parent = projects.filter(p => p.id === parentId)[0];
+              const groupExpanded = ewoExp[parentId] !== false;
+              return (
+                <div key={parentId} style={{ marginBottom: 20, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+                  <div onClick={() => setEwoExp(prev => ({ ...prev, [parentId]: !groupExpanded }))}
+                    style={{ padding: '12px 18px', background: 'var(--s2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 400, fontSize: 10, color: 'var(--t4)' }}>{groupExpanded ? 'v' : '>'}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 800, fontSize: 13, color: 'var(--3eg)' }}>{parent ? parent.projNum : parentId}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)' }}>{parent ? parent.name : ''}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t4)', marginLeft: 4 }}>— {groupEwos.length} EWO{groupEwos.length !== 1 ? 's' : ''}</span>
+                    {parent ? <Tag s={parent.status} /> : null}
+                    <div style={{ flex: 1 }} />
+                    {role === 'manager' && (
+                      <button onClick={ev => { ev.stopPropagation(); setPanel({ type: 'ewoForm', proj: null, parentProj: parent }); }}
+                        style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'rgba(212,136,10,0.14)', border: '1px solid var(--am)', color: 'var(--am)' }}>
+                        + EWO
+                      </button>
+                    )}
+                  </div>
+                  {groupExpanded && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            <ThPlain label="EWO #" />
+                            <ThPlain label="Name" />
+                            <ThPlain label="Company" />
+                            <ThPlain label="Contact" />
+                            <ThPlain label="Hours" />
+                            <ThPlain label="Start" />
+                            <ThPlain label="Status" />
+                            <ThPlain label="Actions" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {groupEwos.map(ewo => (
+                            <tr key={ewo.id} style={{ background: 'var(--s1)', borderBottom: '1px solid var(--s3)' }}
+                              onMouseEnter={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s2)'; }}
+                              onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s1)'; }}>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--am)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                                onClick={() => openProjDetail(ewo)}>{ewo.ewoNum || ewo.projNum}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.name}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ewo.company || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{ewo.contact || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>
+                                {ewo.hrsUsed > 0 ? ewo.hrsUsed : '—'}{ewo.hrsAllowed > 0 ? (' / ' + ewo.hrsAllowed + 'h') : ''}
+                              </td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(ewo.startDate)}</td>
+                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
+                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                  <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
+                                  {role === 'manager' && <IBtn onClick={() => setPanel({ type: 'ewoForm', proj: ewo })} title="Edit EWO">Edit</IBtn>}
+                                  {role === 'manager' && <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Slide-over Panels ──────────────────────────────────── */}
@@ -1853,6 +2081,29 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             projects={projects}
             rfis={rfis}
             onSave={(d, files) => { saveRfi(d, !panel.rfi || !panel.rfi.spId, files).catch(() => undefined); }}
+            onCancel={() => setPanel({ type: null })}
+          />
+        )}
+      </Panel>
+
+      <Panel
+        open={panel.type === 'ewoForm'}
+        onClose={() => setPanel({ type: null })}
+        title={panel.proj && panel.proj.spId ? ('Edit EWO — ' + (panel.proj.ewoNum || panel.proj.projNum)) : 'New EWO'}
+        subtitle="Fill in the EWO details below"
+      >
+        {panel.type === 'ewoForm' && (
+          <EwoForm
+            initial={(() => {
+              if (panel.proj) return panel.proj;
+              const p = emptyProj();
+              p.isEwo = true;
+              if (panel.parentProj) { p.parentId = panel.parentProj.id; }
+              return p;
+            })()}
+            isNew={!panel.proj || !panel.proj.spId}
+            projects={projects}
+            onSave={(d) => { saveProject(d, !panel.proj || !panel.proj.spId).catch(() => undefined); }}
             onCancel={() => setPanel({ type: null })}
           />
         )}

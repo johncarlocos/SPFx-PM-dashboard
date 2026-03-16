@@ -25,12 +25,12 @@ export const hrsRem = (p: any): number | null => p.hrsAllowed > 0 ? p.hrsAllowed
 export const hpct = (p: any): number | null => p.hrsAllowed > 0 ? Math.min(100, Math.round((p.hrsUsed / p.hrsAllowed) * 100)) : null;
 
 // ── Tag ──────────────────────────────────────────────────────────────────────
-export const Tag: React.FC<{ s: string }> = ({ s }) => {
+export const Tag: React.FC<{ s: string; small?: boolean }> = ({ s, small }) => {
   const c = STATUS_CFG[s] || { bg: 'rgba(90,110,136,.10)', color: '#4a5e78', bd: '#5a6e88' };
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 11px', borderRadius: 20,
-      fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11.5,
+      display: 'inline-block', padding: small ? '2px 7px' : '3px 11px', borderRadius: 20,
+      fontFamily: 'Montserrat', fontWeight: 700, fontSize: small ? 9.5 : 11.5,
       letterSpacing: '.06em', textTransform: 'uppercase',
       border: `1px solid ${c.bd}`, background: c.bg, color: c.color, whiteSpace: 'nowrap'
     }}>{s}</span>
@@ -148,7 +148,7 @@ export const IBtn: React.FC<{ onClick: () => void; title?: string; danger?: bool
         background: h ? (danger ? 'var(--rd2)' : 'var(--3eg3)') : 'var(--s0)',
         border: `1px solid ${h ? (danger ? 'var(--rd)' : 'var(--3eg)') : 'var(--bd)'}`,
         color: h ? (danger ? 'var(--rd)' : 'var(--3eg)') : 'var(--t2)',
-        padding: '3px 0', borderRadius: 5, fontSize: 11.5, fontFamily: 'Montserrat', fontWeight: 600, cursor: 'pointer', transition: 'all .12s', width: 62, textAlign: 'center'
+        padding: '2px 0', borderRadius: 4, fontSize: 10.5, fontFamily: 'Montserrat', fontWeight: 600, cursor: 'pointer', transition: 'all .12s', width: 50, textAlign: 'center'
       }}>{children}</button>
   );
 };

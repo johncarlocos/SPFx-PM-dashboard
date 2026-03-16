@@ -1868,14 +1868,14 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(p)}>{p.name}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.company || '—'}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
-                            <td style={{ padding: '9px 6px', minWidth: 130 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
-                            <td style={{ padding: '9px 6px', minWidth: 110 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
-                            <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}><Tag s={p.status} /></td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>{p.name}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
+                            <td style={{ padding: '9px 6px', minWidth: 90 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
+                            <td style={{ padding: '9px 6px', minWidth: 80 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
+                            <td style={{ padding: '9px 4px', whiteSpace: 'nowrap' }}><Tag s={p.status} small /></td>
                             <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                 <IBtn onClick={() => openProjDetail(p)} title="View details">View</IBtn>
@@ -1900,7 +1900,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.startDate)}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.finishDate)}</td>
                                 <td style={{ padding: '7px 6px', minWidth: 110 }}><RfiBar allowed={ewo.rfisAllowed} used={ewoRfis} /></td>
-                                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
+                                <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} small /></td>
                                 <td style={{ padding: '7px 6px', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                     <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
@@ -1983,7 +1983,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                     <div style={{ flex: 1 }} />
                     {isManager && (
                       <button onClick={e => { e.stopPropagation(); openRfiForm(null, proj); }}
-                        style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'var(--3eg3)', border: '1px solid var(--3eg)', color: 'var(--3eg)' }}>
+                        style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'rgba(37,99,235,0.12)', border: '1px solid #2563eb', color: '#2563eb' }}>
                         + RFI
                       </button>
                     )}
@@ -2132,7 +2132,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 {ewo.hrsUsed > 0 ? ewo.hrsUsed : '—'}{ewo.hrsAllowed > 0 ? (' / ' + ewo.hrsAllowed + 'h') : ''}
                               </td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(ewo.startDate)}</td>
-                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} /></td>
+                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} small /></td>
                               <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                   <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>

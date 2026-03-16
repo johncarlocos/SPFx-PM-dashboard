@@ -65,7 +65,7 @@ interface DelState {
 const emptyProj = (): IProject => ({
   id: '', spId: undefined, projNum: '', name: '', status: 'Active', year: new Date().getFullYear(),
   hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
-  email: '', mobile: '', clientNum: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
+  email: '', mobile: '', clientNum: '', clientp0: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
   detailers: '', isEwo: false, ewoNum: '', parentId: null
 });
 
@@ -307,8 +307,11 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
             {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </FF>
-        <FF label="Detailers" span2>
-          <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated detailer names" />
+        <FF label="Client PO#">
+          <input style={inp} value={d.clientp0} onChange={e => set('clientp0', e.target.value)} />
+        </FF>
+        <FF label="Detailers">
+          <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated" />
         </FF>
       </div>
 

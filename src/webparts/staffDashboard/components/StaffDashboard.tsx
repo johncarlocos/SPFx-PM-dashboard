@@ -17,7 +17,7 @@ interface SortCfg { key: string; dir: SortDir }
 const BLANK_PROJ = (): IProject => ({
   id: '', projNum: '', name: '', status: 'Active', year: new Date().getFullYear(),
   hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
-  email: '', mobile: '', clientNum: '', startDate: '', finishDate: '', ifaDate: '',
+  email: '', mobile: '', clientNum: '', clientp0: '', startDate: '', finishDate: '', ifaDate: '',
   ifcDate: '', detailers: '', isEwo: false, ewoNum: '', parentId: null
 });
 

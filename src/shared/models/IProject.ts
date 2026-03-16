@@ -14,6 +14,7 @@ export interface IProject {
   email: string;
   mobile: string;
   clientNum: string;
+  clientp0: string;
   startDate: string;
   finishDate: string;
   ifaDate: string;

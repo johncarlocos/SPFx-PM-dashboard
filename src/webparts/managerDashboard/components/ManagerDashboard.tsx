@@ -551,9 +551,9 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSav
         <FF label="Email">
           <input style={inp} type="email" value={d.email || ''} onChange={e => set('email', e.target.value)} />
         </FF>
-      </div>
-      <div style={{ marginTop: 14 }}>
-        <CcField value={d.cc} onChange={v => set('cc', v)} />
+        <FF label="CC">
+          <CcField value={d.cc} onChange={v => set('cc', v)} compact />
+        </FF>
       </div>
 
       {/* Part B */}

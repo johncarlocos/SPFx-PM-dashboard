@@ -197,7 +197,7 @@ export const BtnPrimary: React.FC<{ onClick: () => void; children: React.ReactNo
 );
 
 // ── CC Multi-Email Field ─────────────────────────────────────────────────────
-export const CcField: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {
+export const CcField: React.FC<{ value: string; onChange: (v: string) => void; compact?: boolean }> = ({ value, onChange, compact }) => {
   const emails = value ? value.split(',').map(e => e.trim()).filter(Boolean) : [];
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -219,9 +219,9 @@ export const CcField: React.FC<{ value: string; onChange: (v: string) => void }>
 
   return (
     <div>
-      <label style={{ fontFamily: 'Montserrat', fontSize: 11.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t4)', display: 'block', marginBottom: 5 }}>
+      {!compact && (<label style={{ fontFamily: 'Montserrat', fontSize: 11.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--t4)', display: 'block', marginBottom: 5 }}>
         CC / Secondary Recipients<span style={{ marginLeft: 8, color: atMax ? 'var(--am)' : 'var(--t4)', fontSize: 10.5 }}>{emails.length}/{MAX} addresses</span>
-      </label>
+      </label>)}
       <div style={{
         background: 'var(--s2)', border: `1px solid ${focused ? 'var(--3eg)' : 'var(--bd)'}`,
         borderRadius: 2, padding: '6px 8px', minHeight: 38,

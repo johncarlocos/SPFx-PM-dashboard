@@ -304,4 +304,39 @@ export class SharePointService {
   public async deleteRfi(spId: number): Promise<void> {
     await this.spDelete(`/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})`);
   }
+
+  // ── Attachments ──────────────────────────────────────────────
+
+  public async getAttachments(spId: number): Promise<{ FileName: string; ServerRelativeUrl: string }[]> {
+    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})/AttachmentFiles`);
+    return d.value || [];
+  }
+
+  public async uploadAttachment(spId: number, file: File): Promise<void> {
+    const digest = await this.getDigest();
+    const buf = await file.arrayBuffer();
+    const url = this._siteUrl +
+      `/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})/AttachmentFiles/add(FileName='${encodeURIComponent(file.name)}')`;
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'X-RequestDigest': digest
+      },
+      body: buf
+    });
+    if (!r.ok) {
+      if (r.status === 403) this._digest = '';
+      let msg = 'Upload failed: HTTP ' + r.status;
+      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      throw new Error(msg);
+    }
+  }
+
+  public async deleteAttachment(spId: number, fileName: string): Promise<void> {
+    await this.spDelete(
+      `/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})/AttachmentFiles/getByFileName('${encodeURIComponent(fileName)}')`
+    );
+  }
 }

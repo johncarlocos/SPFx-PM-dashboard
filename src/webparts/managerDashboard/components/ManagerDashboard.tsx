@@ -477,12 +477,14 @@ interface RfiFormProps {
   isNew: boolean;
   projects: IProject[];
   rfis: IRfi[];
-  onSave: (r: IRfi) => void;
+  onSave: (r: IRfi, files: File[]) => void;
   onCancel: () => void;
 }
 
 const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSave, onCancel }) => {
   const [d, setD] = React.useState<IRfi>({ ...initial });
+  const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof IRfi>(k: K, v: IRfi[K]): void => {
     setD(prev => ({ ...prev, [k]: v }));
@@ -563,7 +565,36 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSav
           <textarea style={{ ...inp, minHeight: 100 }} value={d.description} onChange={e => set('description', e.target.value)} />
         </FF>
         <FF label="Attachments">
-          <input style={inp} value={d.attachments || ''} onChange={e => set('attachments', e.target.value)} placeholder="List attachment names, comma-separated" />
+          <div>
+            <input ref={fileRef} type="file" multiple style={{ display: 'none' }}
+              onChange={e => {
+                if (e.target.files) {
+                  setPendingFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = '';
+                }
+              }} />
+            <button type="button" onClick={() => fileRef.current?.click()}
+              style={{ ...inp, cursor: 'pointer', background: 'var(--s2)', border: '1px dashed var(--bd)', padding: '8px 12px', fontSize: 12, color: 'var(--t3)', width: '100%', textAlign: 'left' }}>
+              + Click to attach files...
+            </button>
+            {pendingFiles.length > 0 && (
+              <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {pendingFiles.map((f, i) => (
+                  <span key={i} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: 'var(--3eg3)', border: '1px solid var(--3eg)', borderRadius: 2,
+                    padding: '2px 6px 2px 8px', fontSize: 11.5, color: 'var(--3eg)', fontFamily: 'Montserrat'
+                  }}>
+                    {f.name}
+                    <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--am)', fontSize: 14, padding: 0, lineHeight: 1 }}>
+                      &times;
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </FF>
       </div>
 
@@ -636,7 +667,7 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSav
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
-        <BtnPrimary onClick={() => onSave(d)}>{isNew ? 'CREATE RFI' : 'SAVE CHANGES'}</BtnPrimary>
+        <BtnPrimary onClick={() => onSave(d, pendingFiles)}>{isNew ? 'CREATE RFI' : 'SAVE CHANGES'}</BtnPrimary>
         <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>
@@ -648,14 +679,23 @@ interface RfiDetailProps {
   rfi: IRfi;
   proj: IProject | undefined;
   isManager: boolean;
+  siteUrl: string;
+  spService: SharePointService;
   onSendEmail: (to: string, cc: string, subject: string, body: string, blob: Blob, fileName: string) => Promise<void>;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, onSendEmail, onEdit, onDelete }) => {
+const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, spService, onSendEmail, onEdit, onDelete }) => {
   const total = rfiTot(rfi);
   const st = effSt(rfi);
+  const [attachFiles, setAttachFiles] = React.useState<{ FileName: string; ServerRelativeUrl: string }[]>([]);
+
+  React.useEffect(() => {
+    if (rfi.spId) {
+      spService.getAttachments(rfi.spId).then(setAttachFiles).catch(() => undefined);
+    }
+  }, [rfi.spId]);
 
   const row = (label: string, value: string | number | boolean | null | undefined, highlight?: boolean): JSX.Element => {
     const v = (value === null || value === undefined || value === '') ? '—' : String(value);
@@ -732,7 +772,19 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, onSendEmail
         <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Description</div>
         <div style={{ fontFamily: 'Montserrat', fontSize: 13, color: 'var(--t1)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{rfi.description || '—'}</div>
       </div>
-      {rfi.attachments ? row('Attachments', rfi.attachments) : null}
+      {attachFiles.length > 0 && (
+        <div style={{ padding: '12px 0', borderBottom: '1px solid var(--bd)' }}>
+          <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Attachments</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {attachFiles.map((f, i) => (
+              <a key={i} href={siteUrl.replace(/\/sites\/.*/, '') + f.ServerRelativeUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--3eg3)', border: '1px solid var(--3eg)', borderRadius: 3, padding: '4px 10px', fontSize: 12, color: 'var(--3eg)', fontFamily: 'Montserrat', textDecoration: 'none', cursor: 'pointer' }}>
+                {f.FileName}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <SDiv label="Parts C & D — Client Response" />
       {row('Client RFI #', rfi.clientRfi)}
@@ -1140,7 +1192,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
     }
   };
 
-  const saveRfi = async (d: IRfi, isNew: boolean): Promise<void> => {
+  const saveRfi = async (d: IRfi, isNew: boolean, files?: File[]): Promise<void> => {
     try {
       if (isLocal()) {
         if (isNew) {
@@ -1155,16 +1207,24 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
         setPanel({ type: null });
         return;
       }
+      let spId = d.spId;
       if (isNew) {
-        const spId = await spService.current.addRfi(d);
+        spId = await spService.current.addRfi(d);
         const saved: IRfi = { ...d, id: d.rfiNum || String(spId), spId };
         setRfis(prev => [...prev, saved]);
         toast('RFI created.');
       } else {
-        if (!d.spId) throw new Error('No spId on RFI');
-        await spService.current.updateRfi(d.spId, d);
+        if (!spId) throw new Error('No spId on RFI');
+        await spService.current.updateRfi(spId, d);
         setRfis(prev => prev.map(r => r.id === d.id ? { ...d } : r));
         toast('RFI saved.');
+      }
+      // Upload pending files
+      if (files && files.length > 0 && spId) {
+        for (const f of files) {
+          await spService.current.uploadAttachment(spId, f);
+        }
+        toast(files.length + ' file(s) attached.');
       }
       setPanel({ type: null });
     } catch (e) {
@@ -1692,6 +1752,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             rfi={panel.rfi}
             proj={panel.parentProj || projects.filter(p => p.id === panel.rfi!.projectId)[0]}
             isManager={role === 'manager'}
+            siteUrl={props.siteUrl}
+            spService={spService.current}
             onSendEmail={async (to, cc, subject, body, blob, fileName) => {
               try {
                 const arrayBuffer = await blob.arrayBuffer();
@@ -1749,7 +1811,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             isNew={!panel.rfi || !panel.rfi.spId}
             projects={projects}
             rfis={rfis}
-            onSave={(d) => { saveRfi(d, !panel.rfi || !panel.rfi.spId).catch(() => undefined); }}
+            onSave={(d, files) => { saveRfi(d, !panel.rfi || !panel.rfi.spId, files).catch(() => undefined); }}
             onCancel={() => setPanel({ type: null })}
           />
         )}

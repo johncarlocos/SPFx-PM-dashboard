@@ -1889,7 +1889,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             return (
                               <tr key={ewo.id} className={styles.ewoRow} style={{ background: 'rgba(42,158,42,0.035)', borderBottom: '1px solid var(--s3)' }}>
                                 <td style={{ padding: '0 0 0 8px', width: 28 }} />
-                                <td style={{ padding: '7px 6px 7px 20px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>
+                                <td style={{ padding: '7px 6px 7px 20px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, color: 'var(--am)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(ewo)}>
                                   <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
                                 </td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
@@ -2013,7 +2013,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               <tr key={r.id} style={{ background: rowBg, borderBottom: '1px solid var(--s3)' }}
                                 onMouseEnter={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s2)'; }}
                                 onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openRfiDetail(r, proj)}>{r.rfiNum}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: '#2563eb', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openRfiDetail(r, proj)}>{r.rfiNum}</td>
                                 <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.rfiType}</td>
                                 <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={st} /></td>
                                 <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(r.dateIssued)}</td>

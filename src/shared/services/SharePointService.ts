@@ -41,7 +41,7 @@ export class SharePointService {
     });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); const em = e.error?.message; msg = (typeof em === 'object' && em?.value) ? em.value : (em || e.error?.code || msg); } catch (_x) { /* ignore */ }
       throw new Error(msg);
     }
     return r.json();
@@ -61,7 +61,7 @@ export class SharePointService {
     });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); const em = e.error?.message; msg = (typeof em === 'object' && em?.value) ? em.value : (em || e.error?.code || msg); } catch (_x) { /* ignore */ }
       throw new Error(msg);
     }
     const text = await r.text();
@@ -84,7 +84,7 @@ export class SharePointService {
     });
     if (!r.ok) {
       let msg = 'HTTP ' + r.status;
-      try { const e = await r.json(); msg = e.error?.message || msg; } catch (_x) { /* ignore */ }
+      try { const e = await r.json(); const em = e.error?.message; msg = (typeof em === 'object' && em?.value) ? em.value : (em || e.error?.code || msg); } catch (_x) { /* ignore */ }
       // if digest expired, clear cache so next call refreshes it
       if (r.status === 403) this._digest = '';
       throw new Error(msg);
@@ -164,8 +164,9 @@ export class SharePointService {
       ifaDate: d.ifaDate || null,
       ifcDate: d.ifcDate || null,
       detailers: d.detailers || '',
-      teamLead: d.teamLead || '',
-      teamMembers: d.teamMembers || '',
+      // teamLead and teamMembers: add these columns to SharePoint list first, then uncomment
+      // teamLead: d.teamLead || '',
+      // teamMembers: d.teamMembers || '',
       isEwo: d.isEwo === true || (d.isEwo as unknown as string) === 'true',
       ewoNum: d.ewoNum || '',
       parentId: d.parentId || null

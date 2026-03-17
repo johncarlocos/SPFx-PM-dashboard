@@ -541,6 +541,9 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
     if (!d.company) missing.push('Company');
     if (!d.contact) missing.push('Contact');
     if (!d.teamLead) missing.push('Team Lead');
+    if (!d.startDate) missing.push('Start Date');
+    if (!d.finishDate) missing.push('Finish Date');
+    if (!d.hrsAllowed || d.hrsAllowed <= 0) missing.push('Hours Allowed');
     if (missing.length > 0) {
       setValError('Required: ' + missing.join(', '));
       return;

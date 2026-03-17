@@ -1112,6 +1112,24 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
   const [error, setError] = React.useState('');
   const [parsed, setParsed] = React.useState(false);
 
+  // Parse "17h 00m", "54h 01m", "22m", "0m", or numeric values to decimal hours
+  const parseHrsMin = (val: unknown): number => {
+    const s = String(val || '').trim();
+    if (!s || s === '0m' || s === '0') return 0;
+    // Try "Xh Ym" format
+    const hm = s.match(/(\d+)\s*h\s*(\d+)\s*m/i);
+    if (hm) return parseInt(hm[1], 10) + parseInt(hm[2], 10) / 60;
+    // Try "Xh" only
+    const hOnly = s.match(/^(\d+)\s*h$/i);
+    if (hOnly) return parseInt(hOnly[1], 10);
+    // Try "Xm" only
+    const mOnly = s.match(/^(\d+)\s*m$/i);
+    if (mOnly) return parseInt(mOnly[1], 10) / 60;
+    // Try plain number
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  };
+
   const handleFile = (f: File | null): void => {
     if (!f) return;
     setError('');
@@ -1129,44 +1147,51 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
         let hrsCol = -1;
         for (let i = 0; i < Math.min(rows.length, 10); i++) {
           const row = rows[i] as unknown[];
-          let localProjCol = -1;
-          let localHrsCol = -1;
           for (let j = 0; j < row.length; j++) {
             const cell = String(row[j] || '').toLowerCase().trim();
-            if (cell.indexOf('project') >= 0 || cell === 'task' || cell === 'task name') localProjCol = j;
-            if (cell.indexOf('hour') >= 0 || cell.indexOf('total') >= 0 ||
-                cell.indexOf('time') >= 0 || cell.indexOf('duration') >= 0 ||
-                cell.indexOf('worked') >= 0 || cell.indexOf('tracked') >= 0) localHrsCol = j;
+            if (cell === 'project' || cell === 'project name') projCol = j;
+            if (cell.indexOf('time tracked') >= 0 || cell.indexOf('hour') >= 0 ||
+                cell.indexOf('total') >= 0 || cell.indexOf('duration') >= 0 ||
+                cell.indexOf('tracked') >= 0 || cell.indexOf('worked') >= 0) hrsCol = j;
           }
-          if (localProjCol >= 0) projCol = localProjCol;
-          if (localHrsCol >= 0) hrsCol = localHrsCol;
           if (projCol >= 0 && hrsCol >= 0) { hRow = i; break; }
         }
         if (hRow < 0 || projCol < 0 || hrsCol < 0) {
-          setError('Could not find Project / Hours columns. Ensure the XLS has "Project" (or "Task") and "Hours" (or "Time"/"Duration"/"Tracked") headers.');
+          setError('Could not find Project / Hours columns. Ensure the XLS has "Project" and "Time Tracked" (or "Hours") headers.');
           return;
         }
-        const updates: TdPreviewRow[] = [];
+        // Aggregate hours by project
+        const aggMap: Record<string, number> = {};
         for (let i = hRow + 1; i < rows.length; i++) {
           const row = rows[i] as unknown[];
           const projRaw = String(row[projCol] || '').trim();
-          const hrsRaw = parseFloat(String(row[hrsCol] || '0'));
-          if (!projRaw || isNaN(hrsRaw) || hrsRaw === 0) continue;
-          const match = projects.find(p =>
-            p.projNum.toLowerCase() === projRaw.toLowerCase() ||
-            p.name.toLowerCase().indexOf(projRaw.toLowerCase()) >= 0 ||
-            projRaw.toLowerCase().indexOf(p.projNum.toLowerCase()) >= 0
-          );
+          const hrs = parseHrsMin(row[hrsCol]);
+          if (!projRaw || hrs === 0) continue;
+          aggMap[projRaw] = (aggMap[projRaw] || 0) + hrs;
+        }
+        // Match aggregated projects to dashboard projects
+        const updates: TdPreviewRow[] = [];
+        for (const [xlsName, totalHrs] of Object.entries(aggMap)) {
+          // Extract 3E-XXX pattern from project name like "01 - 3E-500 SAMPLE TASK"
+          const projNumMatch = xlsName.match(/3E-\d+/i);
+          const match = projects.find(p => {
+            if (projNumMatch && p.projNum.toLowerCase() === projNumMatch[0].toLowerCase()) return true;
+            if (p.name && xlsName.toLowerCase().indexOf(p.name.toLowerCase()) >= 0) return true;
+            if (p.name && p.name.toLowerCase().indexOf(xlsName.toLowerCase()) >= 0) return true;
+            return false;
+          });
           if (match) {
-            const existing = updates.filter(u => u.projId === match.id)[0];
-            if (existing) { existing.hrsUsed += hrsRaw; }
-            else { updates.push({ projId: match.id, projName: match.projNum + ' — ' + match.name, hrsUsed: hrsRaw, current: match.hrsUsed }); }
+            const existing = updates.find(u => u.projId === match.id);
+            if (existing) { existing.hrsUsed += totalHrs; }
+            else { updates.push({ projId: match.id, projName: match.projNum + ' — ' + match.name, hrsUsed: Math.round(totalHrs * 10) / 10, current: match.hrsUsed }); }
           }
         }
         if (updates.length === 0) {
-          setError('No matching projects found. Ensure project numbers in the XLS file match your projects.');
+          setError('No matching projects found. Ensure project names in the XLS contain project numbers (e.g. "3E-500").');
           return;
         }
+        // Round hours
+        updates.forEach(u => { u.hrsUsed = Math.round(u.hrsUsed * 10) / 10; });
         setPreview(updates);
         setParsed(true);
       } catch (e) {

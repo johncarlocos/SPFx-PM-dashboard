@@ -20,6 +20,8 @@ export interface IProject {
   ifaDate: string;
   ifcDate: string;
   detailers: string;
+  teamLead: string;
+  teamMembers: string;
   isEwo: boolean;
   ewoNum: string;
   parentId: string | null;

@@ -66,7 +66,7 @@ const emptyProj = (): IProject => ({
   id: '', spId: undefined, projNum: '', name: '', status: 'Active', year: new Date().getFullYear(),
   hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
   email: '', mobile: '', clientNum: '', clientp0: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
-  detailers: '', isEwo: false, ewoNum: '', parentId: null
+  detailers: '', teamLead: '', teamMembers: '', isEwo: false, ewoNum: '', parentId: null
 });
 
 const emptyRfi = (): IRfi => ({
@@ -502,6 +502,7 @@ interface ProjFormProps {
 
 const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
   const [dupError, setDupError] = React.useState('');
+  const [valError, setValError] = React.useState('');
 
   // Auto-calculate next available project number for new projects
   const nextNum = React.useMemo(() => {
@@ -533,6 +534,18 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
   }, [projects, isNew, initial.projNum]);
 
   const handleSave = (): void => {
+    // Validation
+    const missing: string[] = [];
+    if (!d.projNum || d.projNum === '3E-') missing.push('Project #');
+    if (!d.name) missing.push('Project Name');
+    if (!d.company) missing.push('Company');
+    if (!d.contact) missing.push('Contact');
+    if (!d.teamLead) missing.push('Team Lead');
+    if (missing.length > 0) {
+      setValError('Required: ' + missing.join(', '));
+      return;
+    }
+    setValError('');
     if (usedNums.has(d.projNum.toUpperCase())) {
       setDupError('Project # ' + d.projNum + ' is already in use. Choose a different number.');
       return;
@@ -609,6 +622,16 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         </FF>
       </div>
 
+      <SDiv label="Schedule" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+        <FF label="Assigned Team Lead">
+          <input style={inp} value={d.teamLead} onChange={e => set('teamLead', e.target.value)} placeholder="Team lead name" />
+        </FF>
+        <FF label="Assigned Team Members">
+          <input style={inp} value={d.teamMembers} onChange={e => set('teamMembers', e.target.value)} placeholder="Comma-separated names" />
+        </FF>
+      </div>
+
       <SDiv label="Hours & RFIs" />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 18px' }}>
         <FF label="Hours Allowed">
@@ -622,6 +645,7 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         </FF>
       </div>
 
+      {valError && <div style={{ color: 'var(--rd)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{valError}</div>}
       {dupError && <div style={{ color: 'var(--am)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{dupError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
         <BtnPrimary onClick={handleSave}>{isNew ? 'CREATE PROJECT' : 'SAVE CHANGES'}</BtnPrimary>
@@ -641,6 +665,7 @@ interface EwoFormProps {
 }
 
 const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onCancel }) => {
+  const [ewoValError, setEwoValError] = React.useState('');
   const parentProjects = projects.filter(p => !p.isEwo);
   const allEwos = projects.filter(p => p.isEwo);
 
@@ -744,8 +769,18 @@ const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onC
         </FF>
       </div>
 
+      {ewoValError && <div style={{ color: 'var(--rd)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{ewoValError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
-        <BtnPrimary onClick={() => { if (!d.parentId) { alert('Please select a parent project.'); return; } onSave(d); }}>{isNew ? 'CREATE EWO' : 'SAVE CHANGES'}</BtnPrimary>
+        <BtnPrimary onClick={() => {
+          const missing: string[] = [];
+          if (!d.parentId) missing.push('Parent Project');
+          if (!d.name) missing.push('Project Name');
+          if (!d.company) missing.push('Company');
+          if (!d.contact) missing.push('Contact');
+          if (missing.length > 0) { setEwoValError('Required: ' + missing.join(', ')); return; }
+          setEwoValError('');
+          onSave(d);
+        }}>{isNew ? 'CREATE EWO' : 'SAVE CHANGES'}</BtnPrimary>
         <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>
@@ -858,6 +893,7 @@ interface RfiFormProps {
 
 const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSave, onCancel }) => {
   const [d, setD] = React.useState<IRfi>({ ...initial });
+  const [rfiValError, setRfiValError] = React.useState('');
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -1046,8 +1082,19 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSav
         )}
       </div>
 
+      {rfiValError && <div style={{ color: 'var(--rd)', fontFamily: 'Montserrat', fontSize: 12.5, marginTop: 12, fontWeight: 600 }}>{rfiValError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--bd)' }}>
-        <BtnPrimary onClick={() => onSave(d, pendingFiles)}>{isNew ? 'CREATE RFI' : 'SAVE CHANGES'}</BtnPrimary>
+        <BtnPrimary onClick={() => {
+          const missing: string[] = [];
+          if (!d.projectId) missing.push('Project');
+          if (!d.rfiNum) missing.push('RFI Number');
+          if (!d.rfiType) missing.push('RFI Type');
+          if (!d.submittedTo) missing.push('Submitted To');
+          if (!d.description) missing.push('Description');
+          if (missing.length > 0) { setRfiValError('Required: ' + missing.join(', ')); return; }
+          setRfiValError('');
+          onSave(d, pendingFiles);
+        }}>{isNew ? 'CREATE RFI' : 'SAVE CHANGES'}</BtnPrimary>
         <button onClick={onCancel} style={{ fontFamily: 'Montserrat', fontSize: 12.5, padding: '9px 18px', background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t2)', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
       </div>
     </div>

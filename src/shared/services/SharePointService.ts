@@ -134,6 +134,8 @@ export class SharePointService {
       ifaDate: this.parseDate(i.ifaDate),
       ifcDate: this.parseDate(i.ifcDate),
       detailers: i.detailers || '',
+      teamLead: i.teamLead || '',
+      teamMembers: i.teamMembers || '',
       isEwo: i.isEwo || false,
       ewoNum: i.ewoNum || '',
       parentId: i.parentId || null
@@ -162,6 +164,8 @@ export class SharePointService {
       ifaDate: d.ifaDate || null,
       ifcDate: d.ifcDate || null,
       detailers: d.detailers || '',
+      teamLead: d.teamLead || '',
+      teamMembers: d.teamMembers || '',
       isEwo: d.isEwo === true || (d.isEwo as unknown as string) === 'true',
       ewoNum: d.ewoNum || '',
       parentId: d.parentId || null

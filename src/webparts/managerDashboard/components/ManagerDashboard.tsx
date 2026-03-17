@@ -399,6 +399,97 @@ function generateProjectPdf(proj: IProject, rfis: IRfi[], ewos: IProject[]): voi
   }
 }
 
+// ── Export All Projects PDF ───────────────────────────────────────────────────
+function generateAllProjectsPdf(projects: IProject[], rfis: IRfi[]): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: any = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pw = 297; const ph = 210;
+    const ml = 10; const mr = 10; const tw = pw - ml - mr;
+    const hdrH = 28;
+
+    // Header
+    doc.setFillColor(17, 20, 24);
+    doc.rect(0, 0, pw, hdrH, 'F');
+    if (IMG_LOGO_PDF) doc.addImage(IMG_LOGO_PDF, 'PNG', ml, 4, 32, 20);
+    doc.setDrawColor(42, 158, 42); doc.setLineWidth(0.4);
+    doc.line(ml + 36, 6, ml + 36, hdrH - 6);
+    doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+    doc.text('PROJECT LIST', ml + 41, 13);
+    doc.setTextColor(138, 155, 176); doc.setFontSize(8);
+    doc.text('Generated: ' + new Date().toLocaleDateString('en-AU') + '  |  ' + projects.length + ' projects', ml + 41, 22);
+
+    let y = hdrH + 5;
+    const cols = [
+      { label: 'PROJECT #', w: 22 }, { label: 'QUOTE #', w: 18 }, { label: 'NAME', w: 42 },
+      { label: 'COMPANY', w: 32 }, { label: 'CONTACT', w: 22 }, { label: 'HRS USED', w: 18 },
+      { label: 'HRS ALLOWED', w: 22 }, { label: 'START', w: 20 }, { label: 'FINISH', w: 20 },
+      { label: 'RFIS', w: 12 }, { label: 'EWOS', w: 12 }, { label: 'STATUS', w: 18 }
+    ];
+    const totalW = cols.reduce((s, c) => s + c.w, 0);
+    const scale = tw / totalW;
+    const scaledCols = cols.map(c => ({ ...c, w: c.w * scale }));
+
+    const drawHeader = (): void => {
+      doc.setFillColor(240, 242, 245);
+      let x = ml;
+      scaledCols.forEach(c => {
+        doc.rect(x, y, c.w, 7, 'F');
+        x += c.w;
+      });
+      doc.setDrawColor(208, 213, 222);
+      doc.rect(ml, y, tw, 7, 'S');
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(90, 110, 136);
+      x = ml;
+      scaledCols.forEach(c => {
+        doc.text(c.label, x + 2, y + 4.5);
+        x += c.w;
+      });
+      y += 8;
+    };
+
+    drawHeader();
+
+    const mainProjects = projects.filter(p => !p.isEwo);
+    mainProjects.forEach(p => {
+      if (y + 7 > ph - 12) { doc.addPage(); y = 10; drawHeader(); }
+      const ewoCount = projects.filter(e => e.isEwo && e.parentId === p.id).length;
+      const rfiCount = rfis.filter(r => r.projectId === p.id).length;
+      const vals = [
+        p.projNum, p.quoteNum || '—', p.name || '—', p.company || '—', p.contact || '—',
+        String(p.hrsUsed), String(p.hrsAllowed || '—'), fmtD(p.startDate), fmtD(p.finishDate),
+        String(rfiCount), String(ewoCount), p.status
+      ];
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 32, 48);
+      let x = ml;
+      vals.forEach((v, i) => {
+        if (i === 0) { doc.setFont('helvetica', 'bold'); doc.setTextColor(42, 158, 42); }
+        else { doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 32, 48); }
+        const txt = doc.splitTextToSize(String(v), scaledCols[i].w - 3);
+        doc.text(txt[0] || '—', x + 2, y + 4);
+        x += scaledCols[i].w;
+      });
+      doc.setDrawColor(220, 225, 230);
+      doc.line(ml, y + 6, ml + tw, y + 6);
+      y += 7;
+    });
+
+    // Footer on all pages
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7); doc.setTextColor(138, 155, 176);
+      doc.text('3 Edge Design Project Tracker', ml, ph - 5);
+      doc.text('Page ' + i + ' of ' + pages, pw - mr, ph - 5, { align: 'right' });
+    }
+
+    doc.save('All_Projects_' + new Date().toISOString().substring(0, 10) + '.pdf');
+  } catch (e) {
+    console.error('Export all projects PDF error:', e);
+    alert('PDF generation failed.');
+  }
+}
+
 // ── Project Form ───────────────────────────────────────────────────────────────
 interface ProjFormProps {
   initial: IProject;
@@ -1835,6 +1926,14 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                 {PROJ_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <div style={{ flex: 1 }} />
+              <button onClick={() => generateAllProjectsPdf(visProjects, rfis)} style={{
+                fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                textTransform: 'uppercase', padding: '7px 18px', borderRadius: 6, cursor: 'pointer',
+                background: 'transparent', color: 'var(--t2)', border: '1px solid var(--bd)',
+                marginRight: 8
+              }}>
+                Export All
+              </button>
               {isManager && (
                 <button onClick={() => openProjForm(null)} style={{
                   fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12, letterSpacing: '.08em',

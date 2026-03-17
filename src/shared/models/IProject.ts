@@ -3,6 +3,7 @@ export interface IProject {
   spId?: number;
   projNum: string;
   name: string;
+  discipline: string;
   status: string;
   year: number;
   hrsAllowed: number;

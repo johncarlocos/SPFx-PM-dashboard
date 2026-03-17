@@ -63,7 +63,7 @@ interface DelState {
 
 // ── Empty factories ────────────────────────────────────────────────────────────
 const emptyProj = (): IProject => ({
-  id: '', spId: undefined, projNum: '', name: '', status: 'Active', year: new Date().getFullYear(),
+  id: '', spId: undefined, projNum: '', name: '', discipline: '', status: 'Active', year: new Date().getFullYear(),
   hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
   email: '', mobile: '', clientNum: '', clientp0: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
   detailers: '', teamLead: '', teamMembers: '', isEwo: false, ewoNum: '', parentId: null
@@ -614,8 +614,15 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
               placeholder="2601" />
           </div>
         </FF>
-        <FF label="Project Name" span2>
+        <FF label="Project Name">
           <input style={inp} value={d.name} onChange={e => set('name', e.target.value)} placeholder="Project name" />
+        </FF>
+        <FF label="Discipline">
+          <select style={selStyle} value={d.discipline || ''} onChange={e => set('discipline', e.target.value)}>
+            <option value="">— None —</option>
+            <option value="Steel">Steel</option>
+            <option value="Concrete">Concrete</option>
+          </select>
         </FF>
         <FF label="Company">
           <input style={inp} value={d.company} onChange={e => set('company', e.target.value)} />
@@ -760,8 +767,15 @@ const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onC
               onChange={e => set('quoteNum', 'QU-' + e.target.value.replace(/^QU-/i, ''))} />
           </div>
         </FF>
-        <FF label="Project Name" span2>
+        <FF label="Project Name">
           <input style={inp} value={d.name} onChange={e => set('name', e.target.value)} placeholder="EWO name" />
+        </FF>
+        <FF label="Discipline">
+          <select style={selStyle} value={d.discipline || ''} onChange={e => set('discipline', e.target.value)}>
+            <option value="">— None —</option>
+            <option value="Steel">Steel</option>
+            <option value="Concrete">Concrete</option>
+          </select>
         </FF>
         <FF label="Company">
           <input style={inp} value={d.company} onChange={e => set('company', e.target.value)} />
@@ -2080,7 +2094,18 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>{titleCase(p.name)}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>
+                              <div>{titleCase(p.name)}</div>
+                              {p.discipline && (
+                                <span style={{
+                                  display: 'inline-block', marginTop: 3, padding: '1px 6px', borderRadius: 3,
+                                  fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
+                                  background: p.discipline === 'Concrete' ? 'rgba(107,79,200,0.12)' : 'rgba(37,99,235,0.12)',
+                                  color: p.discipline === 'Concrete' ? '#6b4fc8' : '#2563eb',
+                                  border: `1px solid ${p.discipline === 'Concrete' ? '#6b4fc8' : '#2563eb'}`
+                                }}>{p.discipline}</span>
+                              )}
+                            </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
                             <td style={{ padding: '9px 6px', minWidth: 90 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>

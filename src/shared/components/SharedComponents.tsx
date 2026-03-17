@@ -42,13 +42,13 @@ export const HrsBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
   const pct = allowed > 0 ? Math.min(100, Math.round((used / allowed) * 100)) : null;
   const over = used > allowed;
   const col = hrsColor(pct, over);
-  if (pct === null) return <span style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12, color: 'var(--t4)' }}>—</span>;
+  if (pct === null) return <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t4)' }}>—</span>;
   const rem = Math.abs(used - allowed).toFixed(1);
   return (
     <div style={{ minWidth: 140 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, marginBottom: 4 }}>
-        <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 400 }}> / {allowed}h</span></span>
-        <span style={{ color: col, fontWeight: over ? 700 : 500 }}>{over ? '+' : ''}{rem}h {over ? 'OVER' : 'left'}</span>
+        <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 600 }}> / {allowed}h</span></span>
+        <span style={{ color: col, fontWeight: over ? 700 : 600 }}>{over ? '+' : ''}{rem}h {over ? 'OVER' : 'left'}</span>
       </div>
       <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width .4s' }} />
@@ -62,9 +62,9 @@ export const RfiBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
   if (!allowed || allowed === 0) {
     return (
       <div style={{ minWidth: 120 }}>
-        <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 11.5, color: 'var(--t4)', marginBottom: 4 }}>
+        <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t4)', marginBottom: 4 }}>
           {used > 0 ? <span style={{ color: 'var(--t2)', fontWeight: 600 }}>{used} used</span> : '—'}
-          <span style={{ color: 'var(--t4)' }}> / no limit</span>
+          <span style={{ color: 'var(--t4)', fontWeight: 600 }}> / no limit</span>
         </div>
         <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3 }} />
       </div>
@@ -77,8 +77,8 @@ export const RfiBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
   return (
     <div style={{ minWidth: 120 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, marginBottom: 4 }}>
-        <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 400 }}> / {allowed}</span></span>
-        <span style={{ color: col, fontWeight: over ? 700 : 500 }}>{over ? `+${Math.abs(rem)} OVER` : `${rem} left`}</span>
+        <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 600 }}> / {allowed}</span></span>
+        <span style={{ color: col, fontWeight: over ? 700 : 600 }}>{over ? `+${Math.abs(rem)} OVER` : `${rem} left`}</span>
       </div>
       <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width .4s' }} />
@@ -101,7 +101,7 @@ export const Stat: React.FC<{ label: string; value: any; sub?: string; col: stri
   <div style={{ flex: 1, minWidth: 130, background: 'var(--s0)', border: '1px solid var(--bd)', borderRadius: 10, padding: '18px 20px', borderTop: `4px solid ${col}`, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
     <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--t4)', marginBottom: 10 }}>{label}</div>
     <div style={{ fontFamily: 'Montserrat', fontWeight: 800, fontSize: 34, color: warn ? 'var(--rd)' : 'var(--t1)', lineHeight: 1 }}>{value}</div>
-    {sub && <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12.5, color: col, marginTop: 7 }}>{sub}</div>}
+    {sub && <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: col, marginTop: 7 }}>{sub}</div>}
   </div>
 );
 
@@ -120,7 +120,7 @@ export const Panel: React.FC<{ open: boolean; onClose: () => void; title?: strin
       <div style={{ padding: '18px 24px 16px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'var(--s1)' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: 'Montserrat', fontWeight: 800, fontSize: 18, color: 'var(--t1)', letterSpacing: '.02em', lineHeight: 1.1 }}>{title}</div>
-          {subtitle && <div style={{ fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12.5, color: 'var(--t4)', marginTop: 4, letterSpacing: '.04em' }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: 'var(--t4)', marginTop: 4, letterSpacing: '.04em' }}>{subtitle}</div>}
         </div>
         {tag}
         <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--bd)', color: 'var(--t3)', width: 32, height: 32, borderRadius: 6, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>

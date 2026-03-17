@@ -81,7 +81,7 @@ const emptyRfi = (): IRfi => ({
 
 // ── Inline style helpers ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
-  fontFamily: 'Montserrat', fontSize: 13, padding: '8px 12px',
+  fontFamily: 'Montserrat', fontSize: 13, fontWeight: 600, padding: '8px 12px',
   border: '1px solid var(--bd)', borderRadius: 2,
   background: 'var(--s2)', color: 'var(--t1)', width: '100%', outline: 'none'
 };
@@ -1240,7 +1240,7 @@ const TdImportModal: React.FC<TdImportModalProps> = ({ projects, onClose, onAppl
                     const newTotal = u.current + u.hrsUsed;
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid var(--bd)' }}>
-                        <td style={{ padding: '7px 12px', color: 'var(--t1)', fontWeight: 500 }}>{u.projName}</td>
+                        <td style={{ padding: '7px 12px', color: 'var(--t1)', fontWeight: 600 }}>{u.projName}</td>
                         <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--t3)' }}>{u.current}h</td>
                         <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--t1)', fontWeight: 700 }}>{newTotal.toFixed(1)}h</td>
                         <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--am)', fontWeight: 600 }}>+{u.hrsUsed.toFixed(1)}h</td>
@@ -1892,13 +1892,13 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               )}
                             </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>{p.name}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
                             <td style={{ padding: '9px 6px', minWidth: 90 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.startDate)}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(p.finishDate)}</td>
                             <td style={{ padding: '9px 6px', minWidth: 80 }}><RfiBar allowed={p.rfisAllowed} used={rfiCount} /></td>
                             <td style={{ padding: '9px 4px', whiteSpace: 'nowrap' }}><Tag s={p.status} small /></td>
                             <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}>
@@ -1918,8 +1918,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                   <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
                                 </td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
-                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 500, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
-                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.company || '—'}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.company || '—'}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
                                 <td style={{ padding: '7px 6px', minWidth: 130 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{fmtD(ewo.startDate)}</td>
@@ -2039,12 +2039,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 onMouseEnter={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s2)'; }}
                                 onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = rowBg; }}>
                                 <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: '#2563eb', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openRfiDetail(r, proj)}>{r.rfiNum}</td>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.rfiType}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.rfiType}</td>
                                 <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={st} /></td>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(r.dateIssued)}</td>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: overdue ? 'var(--rd)' : 'var(--t3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtD(r.dateRequired)}</td>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.submittedTo || '—'}</td>
-                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{r.response || '—'}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(r.dateIssued)}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: overdue ? 'var(--rd)' : 'var(--t3)', fontWeight: overdue ? 700 : 600, whiteSpace: 'nowrap' }}>{fmtD(r.dateRequired)}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{r.submittedTo || '—'}</td>
+                                <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{r.response || '—'}</td>
                                 <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: r.impacted === 'Yes' ? 'var(--am)' : 'var(--t4)', whiteSpace: 'nowrap' }}>
                                   {r.impacted === 'Yes' ? ('Yes (' + rfiTot(r).toFixed(1) + 'h)') : 'No'}
                                 </td>
@@ -2151,12 +2151,12 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--am)', whiteSpace: 'nowrap', cursor: 'pointer' }}
                                 onClick={() => openProjDetail(ewo)}>{ewo.ewoNum || ewo.projNum}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.name}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ewo.company || '—'}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{ewo.contact || '—'}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ewo.company || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{ewo.contact || '—'}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>
                                 {ewo.hrsUsed > 0 ? ewo.hrsUsed : '—'}{ewo.hrsAllowed > 0 ? (' / ' + ewo.hrsAllowed + 'h') : ''}
                               </td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(ewo.startDate)}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{fmtD(ewo.startDate)}</td>
                               <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><Tag s={ewo.status} small /></td>
                               <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>

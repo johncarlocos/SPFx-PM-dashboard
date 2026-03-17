@@ -86,6 +86,7 @@ const inp: React.CSSProperties = {
   background: 'var(--s2)', color: 'var(--t1)', width: '100%', outline: 'none'
 };
 const selStyle: React.CSSProperties = { ...inp, cursor: 'pointer' };
+const titleCase = (s: string): string => s ? s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '';
 
 // ── PDF Generator ─────────────────────────────────────────────────────────────
 function generateRfiPdf(rfi: IRfi, proj: IProject | undefined): Blob | undefined {
@@ -1992,7 +1993,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
-                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>{p.name}</td>
+                            <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>{titleCase(p.name)}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{p.contact || '—'}</td>
                             <td style={{ padding: '9px 6px', minWidth: 90 }}><HrsBar allowed={p.hrsAllowed} used={p.hrsUsed} /></td>
@@ -2017,7 +2018,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                   <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
                                 </td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
-                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{titleCase(ewo.name)}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.company || '—'}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
                                 <td style={{ padding: '7px 6px', minWidth: 130 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
@@ -2249,7 +2250,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s1)'; }}>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--am)', whiteSpace: 'nowrap', cursor: 'pointer' }}
                                 onClick={() => openProjDetail(ewo)}>{ewo.ewoNum || ewo.projNum}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.name}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titleCase(ewo.name)}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ewo.company || '—'}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{ewo.contact || '—'}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>

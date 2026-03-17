@@ -1997,8 +1997,8 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             <td style={{ padding: '0 0 0 8px', width: 28, textAlign: 'center' }}>
                               {ewos.length > 0 && (
                                 <button onClick={() => setExp(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 10, color: 'var(--t4)', fontFamily: 'Montserrat', padding: '2px 4px' }}>
-                                  {expanded ? 'v' : '>'}
+                                  style={{ background: 'var(--am2)', border: '1px solid var(--am)', borderRadius: 4, cursor: 'pointer', fontSize: 12, color: 'var(--am)', fontFamily: 'Montserrat', fontWeight: 700, padding: '2px 6px', lineHeight: 1, transition: 'all .15s' }}>
+                                  {expanded ? '▾' : '▸'}
                                 </button>
                               )}
                             </td>

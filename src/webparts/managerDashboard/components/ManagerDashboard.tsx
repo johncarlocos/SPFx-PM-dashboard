@@ -660,6 +660,12 @@ const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onC
       const seq = String(count + 1).padStart(3, '0');
       updates.projNum = parent.projNum + '-EWO-' + seq;
       updates.ewoNum = parent.projNum + '-EWO-' + seq;
+      // Inherit company details from parent project
+      updates.company = parent.company;
+      updates.contact = parent.contact;
+      updates.email = parent.email;
+      updates.mobile = parent.mobile;
+      updates.clientNum = parent.clientNum;
     }
     setD(prev => ({ ...prev, ...updates }));
   };
@@ -866,6 +872,11 @@ const RfiForm: React.FC<RfiFormProps> = ({ initial, isNew, projects, rfis, onSav
       const count = rfis.filter(r => r.projectId === projId).length;
       const seq = String(count + 1).padStart(3, '0');
       updates.rfiNum = `${p.projNum}-RFI-${seq}`;
+      // Inherit company details from parent project
+      if (p.contact) updates.submittedTo = p.contact;
+      if (p.company) updates.toCompany = p.company;
+      if (p.email) updates.email = p.email;
+      updates.byCompany = '3 Edge Design';
     }
     setD(prev => ({ ...prev, ...updates }));
   };

@@ -1929,16 +1929,6 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
           </button>
         )}
 
-        {/* Refresh */}
-        <button onClick={loadData} style={{
-          fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, letterSpacing: '.1em',
-          textTransform: 'uppercase', padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
-          background: spLoading ? 'rgba(42,158,42,0.08)' : 'transparent',
-          border: '1px solid rgba(138,155,176,.3)', color: '#8a9bb0', marginRight: 8
-        }}>
-          {spLoading ? 'Loading...' : 'Refresh'}
-        </button>
-
         {/* SP Status indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginRight: 14 }}>
           <div style={{

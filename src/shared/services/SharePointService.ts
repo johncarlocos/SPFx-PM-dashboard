@@ -177,10 +177,10 @@ export class SharePointService {
       mobile: d.mobile || '',
       clientNum: d.clientNum || '',
       clientp0: d.clientp0 || '',
-      startDate: d.startDate || null,
-      finishDate: d.finishDate || null,
-      ifaDate: d.ifaDate || null,
-      ifcDate: d.ifcDate || null,
+      startDate: d.startDate ? d.startDate : null,
+      finishDate: d.finishDate ? d.finishDate : null,
+      ifaDate: d.ifaDate ? d.ifaDate : null,
+      ifcDate: d.ifcDate ? d.ifcDate : null,
       detailers: d.detailers || '',
       teamLead: d.teamLead || '',
       teamMembers: d.teamMembers || '',
@@ -293,11 +293,11 @@ export class SharePointService {
       by: d.by || '',
       byCompany: d.byCompany || '',
       cc: d.cc || '',
-      dateIssued: d.dateIssued || null,
-      dateRequired: d.dateRequired || null,
+      dateIssued: d.dateIssued ? d.dateIssued : null,
+      dateRequired: d.dateRequired ? d.dateRequired : null,
       description: d.description || '',
       clientRfi: d.clientRfi || '',
-      dateReceived: d.dateReceived || null,
+      dateReceived: d.dateReceived ? d.dateReceived : null,
       response: d.response || '',
       responseDesc: d.responseDesc || '',
       sentBy: d.sentBy || '',
@@ -312,7 +312,7 @@ export class SharePointService {
       admin: Number(d.admin) || 0,
       revision: d.revision || 'A',
       email: d.email || '',
-      emailSentDate: d.emailSentDate || ''
+      emailSentDate: d.emailSentDate ? d.emailSentDate : null
     };
   }
 

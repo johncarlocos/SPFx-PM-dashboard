@@ -525,9 +525,6 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         <FF label="Client PO#">
           <input style={inp} value={d.clientp0} onChange={e => set('clientp0', e.target.value)} />
         </FF>
-        <FF label="Detailers">
-          <input style={inp} value={d.detailers} onChange={e => set('detailers', e.target.value)} placeholder="Comma-separated" />
-        </FF>
       </div>
 
       <SDiv label="Dates" />
@@ -1046,7 +1043,7 @@ interface RfiDetailProps {
   isManager: boolean;
   siteUrl: string;
   spService: SharePointService;
-  onSendEmail: (to: string, cc: string, subject: string, body: string, blob: Blob, fileName: string) => Promise<void>;
+  onSendEmail: (to: string, cc: string, subject: string, body: string) => Promise<void>;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -1099,7 +1096,7 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, sp
       '<strong>Description:</strong><br>' + (rfi.description || '—') + '<br><br>' +
       'Please respond by ' + fmtD(rfi.dateRequired) + '.<br><br>' +
       'Kind regards,<br>' + (rfi.by || '') + '<br>3 Edge Design';
-    onSendEmail(recipients, rfi.cc || '', subject, body, blob, fileName).catch(console.error);
+    onSendEmail(recipients, rfi.cc || '', subject, body).catch(console.error);
   };
 
   return (
@@ -1131,6 +1128,7 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, sp
       {row('By Company', rfi.byCompany)}
       {rfi.email ? row('Email', rfi.email) : null}
       {rfi.cc ? row('CC', rfi.cc) : null}
+      {rfi.emailSentDate ? row('Email Sent', fmtD(rfi.emailSentDate)) : null}
 
       <SDiv label="Part B — Description" />
       <div style={{ padding: '12px 0', borderBottom: '1px solid var(--bd)' }}>
@@ -2352,35 +2350,27 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
             isManager={isManager}
             siteUrl={props.siteUrl}
             spService={spService.current}
-            onSendEmail={async (to, cc, subject, body, blob, fileName) => {
+            onSendEmail={async (to, _cc, subject, body) => {
               try {
-                const arrayBuffer = await blob.arrayBuffer();
-                const bytes = new Uint8Array(arrayBuffer);
-                let binary = '';
-                bytes.forEach(b => { binary += String.fromCharCode(b); });
-                const base64 = btoa(binary);
-                const toList = to.split(/[,;]/).map(s => s.trim()).filter(Boolean)
-                  .map(addr => ({ emailAddress: { address: addr } }));
-                const ccList = cc ? cc.split(/[,;]/).map(s => s.trim()).filter(Boolean)
-                  .map(addr => ({ emailAddress: { address: addr } })) : [];
-                const client = await props.msGraphClientFactory.getClient('3');
-                await client.api('/me/sendMail').post({
-                  message: {
-                    subject,
-                    body: { contentType: 'HTML', content: body },
-                    toRecipients: toList,
-                    ccRecipients: ccList,
-                    attachments: [{
-                      '@odata.type': '#microsoft.graph.fileAttachment',
-                      name: fileName,
-                      contentType: 'application/pdf',
-                      contentBytes: base64
-                    }]
-                  }
-                });
-                toast('Email with PDF sent to ' + to);
+                // Open email client with pre-filled content
+                const plainBody = body.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+                const mailto = 'mailto:' + encodeURIComponent(to) +
+                  '?subject=' + encodeURIComponent(subject) +
+                  '&body=' + encodeURIComponent(plainBody);
+                const a = document.createElement('a');
+                a.href = mailto;
+                a.click();
+                // Record sent date on the RFI
+                if (panel.rfi && panel.rfi.spId) {
+                  const sentDate = new Date().toISOString().substring(0, 10);
+                  const updated = { ...panel.rfi, emailSentDate: sentDate };
+                  await spService.current.updateRfi(panel.rfi.spId, updated);
+                  setRfis(prev => prev.map(r => r.id === panel.rfi!.id ? updated : r));
+                  setPanel(prev => ({ ...prev, rfi: updated }));
+                }
+                toast('Email client opened. PDF downloaded. Sent date recorded.');
               } catch (e) {
-                toast('Email failed: ' + String(e));
+                toast('Failed: ' + String(e));
               }
             }}
             onEdit={() => setPanel({ type: 'rfiForm', rfi: panel.rfi, parentProj: panel.parentProj })}

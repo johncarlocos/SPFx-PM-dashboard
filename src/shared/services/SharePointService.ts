@@ -259,7 +259,8 @@ export class SharePointService {
       drawings: Number(i.drawings) || 0,
       admin: Number(i.admin) || 0,
       revision: i.revision || 'A',
-      email: i.email || ''
+      email: i.email || '',
+      emailSentDate: i.emailSentDate || ''
     }));
   }
 
@@ -295,7 +296,8 @@ export class SharePointService {
       drawings: Number(d.drawings) || 0,
       admin: Number(d.admin) || 0,
       revision: d.revision || 'A',
-      email: d.email || ''
+      email: d.email || '',
+      emailSentDate: d.emailSentDate || ''
     };
   }
 

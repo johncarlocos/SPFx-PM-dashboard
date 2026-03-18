@@ -64,6 +64,7 @@ export interface IRfi {
   admin: number;
   revision?: string;
   email?: string;
+  emailSentDate?: string;
   total?: number;
 }
 

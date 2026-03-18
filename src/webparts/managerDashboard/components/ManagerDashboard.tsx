@@ -86,7 +86,6 @@ const inp: React.CSSProperties = {
   background: 'var(--s2)', color: 'var(--t1)', width: '100%', outline: 'none'
 };
 const selStyle: React.CSSProperties = { ...inp, cursor: 'pointer' };
-const titleCase = (s: string): string => s ? s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '';
 
 // ── Shared Letterhead for all PDFs (uses actual letterhead images) ────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1974,7 +1973,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 13, color: 'var(--3eg)', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => openProjDetail(p)}>{p.projNum}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12.5, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{p.quoteNum || '—'}</td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>
-                              <div>{titleCase(p.name)}</div>
+                              <div>{p.name}</div>
                               {p.discipline && (
                                 <span style={{
                                   display: 'inline-block', marginTop: 3, padding: '1px 6px', borderRadius: 3,
@@ -2008,7 +2007,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                   <span style={{ color: 'var(--t4)', fontWeight: 400, fontSize: 10, marginRight: 4 }}>EWO</span>{ewo.ewoNum || ewo.projNum}
                                 </td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t4)' }}>{ewo.quoteNum || '—'}</td>
-                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{titleCase(ewo.name)}</td>
+                                <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => openProjDetail(ewo)}>{ewo.name}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.company || '—'}</td>
                                 <td style={{ padding: '7px 6px', fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>{ewo.contact || '—'}</td>
                                 <td style={{ padding: '7px 6px', minWidth: 130 }}><HrsBar allowed={ewo.hrsAllowed} used={ewo.hrsUsed} /></td>
@@ -2226,13 +2225,6 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                     <span style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 13, color: 'var(--t1)' }}>{parent ? parent.name : ''}</span>
                     <span style={{ fontFamily: 'Montserrat', fontSize: 11.5, color: 'var(--t4)', marginLeft: 4 }}>— {groupEwos.length} EWO{groupEwos.length !== 1 ? 's' : ''}</span>
                     {parent ? <Tag s={parent.status} /> : null}
-                    <div style={{ flex: 1 }} />
-                    {isManager && (
-                      <button onClick={ev => { ev.stopPropagation(); setPanel({ type: 'ewoForm', proj: null, parentProj: parent }); }}
-                        style={{ fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', background: 'rgba(212,136,10,0.14)', border: '1px solid var(--am)', color: 'var(--am)' }}>
-                        + EWO
-                      </button>
-                    )}
                   </div>
                   {groupExpanded && (
                     <div style={{ overflowX: 'auto' }}>
@@ -2256,7 +2248,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                               onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = 'var(--s1)'; }}>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 700, fontSize: 12.5, color: 'var(--am)', whiteSpace: 'nowrap', cursor: 'pointer' }}
                                 onClick={() => openProjDetail(ewo)}>{ewo.ewoNum || ewo.projNum}</td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titleCase(ewo.name)}</td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ewo.name}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ewo.company || '—'}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{ewo.contact || '—'}</td>
                               <td style={{ padding: '10px 12px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>

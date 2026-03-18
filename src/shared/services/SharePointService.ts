@@ -1,8 +1,11 @@
 import { SPHttpClient } from '@microsoft/sp-http';
 import { IProject, IRfi } from '../models/IProject';
+import { ITask, ITeamMember, ITaskHistory } from '../models/ITask';
 
 const LIST_PROJ = '3Edge_Projects';
 const LIST_RFI = '3Edge_RFIs';
+const LIST_TASKS = 'WeeklyTasks';
+const LIST_TEAM = 'TeamMembers';
 
 export class SharePointService {
   private _siteUrl: string;
@@ -363,5 +366,94 @@ export class SharePointService {
     await this.spDelete(
       `/_api/web/lists/getbytitle('${LIST_RFI}')/items(${spId})/AttachmentFiles/getByFileName('${encodeURIComponent(fileName)}')`
     );
+  }
+
+  // ── TeamMembers CRUD ───────────────────────────────────────
+
+  public async loadTeamMembers(): Promise<ITeamMember[]> {
+    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_TEAM}')/items?$top=200&$orderby=Initials asc`);
+    return (d.value || []).map((i: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+      id: i.Initials || String(i.Id),
+      spId: i.Id,
+      initials: i.Initials || '',
+      fullName: i.FullName || i.Title || '',
+      roleType: i.RoleType || 'Team',
+      email: i.Email || '',
+      totalHrsPerWeek: Number(i.TotalHrsPerWeek) || 40,
+      productionPct: Number(i.ProductionPct) || 0,
+      prodHrsPerWeek: Math.round((Number(i.TotalHrsPerWeek) || 40) * (Number(i.ProductionPct) || 0) / 100),
+      startDate: this.parseDate(i.StartDate),
+      endDate: this.parseDate(i.EndDate),
+      isActive: i.IsActive !== false
+    }));
+  }
+
+  // ── WeeklyTasks CRUD ───────────────────────────────────────
+
+  public async loadTasks(weekStartDate?: string): Promise<ITask[]> {
+    let filter = '';
+    if (weekStartDate) filter = `&$filter=weekStartDate eq '${weekStartDate}'`;
+    const d = await this.spGet(`/_api/web/lists/getbytitle('${LIST_TASKS}')/items?$top=2000&$orderby=day asc${filter}`);
+    return (d.value || []).map((i: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      let hist: ITaskHistory[] = [];
+      try { hist = i.history ? JSON.parse(i.history) : []; } catch (_e) { /* ignore */ }
+      return {
+        id: String(i.Id),
+        spId: i.Id,
+        project: i.project || '',
+        taskCode: i.taskCode || '',
+        description: i.Title || '',
+        assignee: i.assignee || '',
+        day: Number(i.day) || 0,
+        weekStartDate: this.parseDate(i.weekStartDate),
+        hoursPlanned: Number(i.hoursPlanned) || 0,
+        hoursActual: Number(i.hoursActual) || 0,
+        wipPct: Number(i.wipPct) || 0,
+        status: i.status || 'not_started',
+        priority: i.priority || 'medium',
+        completedBy: i.completedBy || '',
+        completedAt: i.completedAt || '',
+        completionNote: i.completionNote || '',
+        reviewedBy: i.reviewedBy || '',
+        reviewStatus: i.reviewStatus || '',
+        history: hist
+      };
+    });
+  }
+
+  private tBody(d: ITask): object {
+    return {
+      Title: d.description || '',
+      project: d.project || '',
+      taskCode: d.taskCode || '',
+      assignee: d.assignee || '',
+      day: Number(d.day) || 0,
+      weekStartDate: d.weekStartDate ? d.weekStartDate : null,
+      hoursPlanned: Number(d.hoursPlanned) || 0,
+      hoursActual: Number(d.hoursActual) || 0,
+      wipPct: Number(d.wipPct) || 0,
+      status: d.status || 'not_started',
+      priority: d.priority || 'medium',
+      completedBy: d.completedBy || '',
+      completedAt: d.completedAt ? d.completedAt : null,
+      completionNote: d.completionNote || '',
+      reviewedBy: d.reviewedBy || '',
+      reviewStatus: d.reviewStatus || '',
+      history: JSON.stringify(d.history || [])
+    };
+  }
+
+  public async addTask(d: ITask): Promise<number> {
+    const r = await this.spPost(`/_api/web/lists/getbytitle('${LIST_TASKS}')/items`, this.tBody(d));
+    if (!r || !r.Id) throw new Error('No Id returned');
+    return r.Id;
+  }
+
+  public async updateTask(spId: number, d: ITask): Promise<void> {
+    await this.spMerge(`/_api/web/lists/getbytitle('${LIST_TASKS}')/items(${spId})`, this.tBody(d));
+  }
+
+  public async deleteTask(spId: number): Promise<void> {
+    await this.spDelete(`/_api/web/lists/getbytitle('${LIST_TASKS}')/items(${spId})`);
   }
 }

@@ -10,6 +10,7 @@ import type { IManagerDashboardProps } from './IManagerDashboardProps';
 
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+import TaskBoard from './TaskBoard';
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 import logoImg from '../assets/3edge-logo.png';
@@ -43,7 +44,7 @@ import _fBlackI from '../assets/Montserrat-BlackItalic.ttf';
 })();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Mod = 'projects' | 'rfis' | 'ewos';
+type Mod = 'projects' | 'rfis' | 'ewos' | 'tasks';
 type SDir = 'asc' | 'desc';
 type Role = 'manager' | 'staff';
 type SpMode = 'live' | 'local' | 'detecting';
@@ -1799,7 +1800,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
 
         {/* Nav Tabs */}
         <div style={{ display: 'flex', gap: 2 }}>
-          {(['projects', 'rfis', 'ewos'] as Mod[]).map((m: Mod) => (
+          {(['projects', 'rfis', 'ewos', 'tasks'] as Mod[]).map((m: Mod) => (
             <button key={m} onClick={() => setMod(m)} style={{
               fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.12em',
               textTransform: 'uppercase', padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
@@ -1807,7 +1808,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               border: mod === m ? '1px solid var(--3eg)' : '1px solid transparent',
               color: mod === m ? 'var(--3eg)' : '#8a9bb0', transition: 'all .15s'
             }}>
-              {m === 'projects' ? 'Projects' : m === 'rfis' ? 'RFIs' : 'EWOs'}
+              {m === 'projects' ? 'Projects' : m === 'rfis' ? 'RFIs' : m === 'ewos' ? 'EWOs' : 'Tasks'}
             </button>
           ))}
         </div>
@@ -2277,6 +2278,20 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ═══════════════ TASKS ═══════════════ */}
+        {mod === 'tasks' && (
+          <div className={styles.fade}>
+            <TaskBoard
+              spService={spService.current}
+              projects={projects}
+              userDisplayName={props.userDisplayName}
+              siteUrl={props.siteUrl}
+              isManager={isManager}
+              toast={toast}
+            />
           </div>
         )}
       </div>

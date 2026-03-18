@@ -1881,7 +1881,7 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
       {/* ── Staff Banner ─────────────────────────────────────────── */}
       {role === 'staff' && (
         <div style={{ background: 'rgba(212,136,10,0.10)', borderBottom: '1px solid var(--am)', padding: '7px 24px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--am)' }}>Staff View</span>
+          <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--am)' }}>Team View</span>
           <span style={{ fontFamily: 'Montserrat', fontSize: 12, color: 'var(--t3)' }}>— Read-only access. Switch to Manager to create or edit records.</span>
         </div>
       )}

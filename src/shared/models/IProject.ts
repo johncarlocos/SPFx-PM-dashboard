@@ -23,6 +23,7 @@ export interface IProject {
   detailers: string;
   teamLead: string;
   teamMembers: string;
+  notes: string;
   isEwo: boolean;
   ewoNum: string;
   parentId: string | null;

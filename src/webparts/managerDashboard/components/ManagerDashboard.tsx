@@ -63,10 +63,10 @@ interface DelState {
 
 // ── Empty factories ────────────────────────────────────────────────────────────
 const emptyProj = (): IProject => ({
-  id: '', spId: undefined, projNum: '', name: '', discipline: '', status: 'Active', year: new Date().getFullYear(),
+  id: '', spId: undefined, projNum: '', name: '', discipline: 'Steel', status: 'Active', year: new Date().getFullYear(),
   hrsAllowed: 0, hrsUsed: 0, rfisAllowed: 0, quoteNum: '', contact: '', company: '',
   email: '', mobile: '', clientNum: '', clientp0: '', startDate: '', finishDate: '', ifaDate: '', ifcDate: '',
-  detailers: '', teamLead: '', teamMembers: '', isEwo: false, ewoNum: '', parentId: null
+  detailers: '', teamLead: '', teamMembers: '', notes: '', isEwo: false, ewoNum: '', parentId: null
 });
 
 const emptyRfi = (): IRfi => ({
@@ -497,9 +497,9 @@ const ProjForm: React.FC<ProjFormProps> = ({ initial, isNew, projects, onSave, o
         </FF>
         <FF label="Discipline">
           <select style={selStyle} value={d.discipline || ''} onChange={e => set('discipline', e.target.value)}>
-            <option value="">— None —</option>
             <option value="Steel">Steel</option>
             <option value="Concrete">Concrete</option>
+            <option value="Steel & Concrete">Steel & Concrete</option>
           </select>
         </FF>
         <FF label="Company">
@@ -650,9 +650,9 @@ const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onC
         </FF>
         <FF label="Discipline">
           <select style={selStyle} value={d.discipline || ''} onChange={e => set('discipline', e.target.value)}>
-            <option value="">— None —</option>
             <option value="Steel">Steel</option>
             <option value="Concrete">Concrete</option>
+            <option value="Steel & Concrete">Steel & Concrete</option>
           </select>
         </FF>
         <FF label="Company">
@@ -684,6 +684,13 @@ const EwoForm: React.FC<EwoFormProps> = ({ initial, isNew, projects, onSave, onC
         </FF>
         <FF label="Finish Date">
           <input style={inp} type="date" value={d.finishDate} onChange={e => set('finishDate', e.target.value)} />
+        </FF>
+      </div>
+
+      <SDiv label="Notes" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
+        <FF label="Notes">
+          <textarea style={{ ...inp, minHeight: 60 }} value={d.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notes..." />
         </FF>
       </div>
 
@@ -1978,9 +1985,9 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <span style={{
                                   display: 'inline-block', marginTop: 3, padding: '1px 6px', borderRadius: 3,
                                   fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-                                  background: p.discipline === 'Concrete' ? 'rgba(107,79,200,0.12)' : 'rgba(37,99,235,0.12)',
-                                  color: p.discipline === 'Concrete' ? '#6b4fc8' : '#2563eb',
-                                  border: `1px solid ${p.discipline === 'Concrete' ? '#6b4fc8' : '#2563eb'}`
+                                  background: p.discipline === 'Concrete' ? 'rgba(107,79,200,0.12)' : p.discipline === 'Steel & Concrete' ? 'rgba(42,158,42,0.12)' : 'rgba(37,99,235,0.12)',
+                                  color: p.discipline === 'Concrete' ? '#6b4fc8' : p.discipline === 'Steel & Concrete' ? '#2a9e2a' : '#2563eb',
+                                  border: `1px solid ${p.discipline === 'Concrete' ? '#6b4fc8' : p.discipline === 'Steel & Concrete' ? '#2a9e2a' : '#2563eb'}`
                                 }}>{p.discipline}</span>
                               )}
                             </td>

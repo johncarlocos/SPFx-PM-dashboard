@@ -137,6 +137,7 @@ export class SharePointService {
       detailers: i.detailers || '',
       teamLead: i.teamLead || '',
       teamMembers: i.teamMembers || '',
+      notes: i.notes || '',
       isEwo: i.isEwo || false,
       ewoNum: i.ewoNum || '',
       parentId: i.parentId || null
@@ -166,9 +167,9 @@ export class SharePointService {
       ifaDate: d.ifaDate || null,
       ifcDate: d.ifcDate || null,
       detailers: d.detailers || '',
-      // teamLead and teamMembers: add these columns to SharePoint list first, then uncomment
-      // teamLead: d.teamLead || '',
-      // teamMembers: d.teamMembers || '',
+      teamLead: d.teamLead || '',
+      teamMembers: d.teamMembers || '',
+      notes: d.notes || '',
       isEwo: d.isEwo === true || (d.isEwo as unknown as string) === 'true',
       ewoNum: d.ewoNum || '',
       parentId: d.parentId || null

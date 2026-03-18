@@ -7,6 +7,7 @@ const LIST_RFI = '3Edge_RFIs';
 export class SharePointService {
   private _siteUrl: string;
   private _digest: string = '';
+  private _digestTime: number = 0;
 
   // spHttpClient param kept for API compat but all requests use plain fetch
   constructor(siteUrl: string, _spHttpClient?: SPHttpClient) {
@@ -21,7 +22,10 @@ export class SharePointService {
   }
 
   private async getDigest(): Promise<string> {
-    if (this._digest) return this._digest;
+    // Refresh digest if older than 25 minutes (SharePoint digests expire at 30 min)
+    const age = Date.now() - this._digestTime;
+    if (this._digest && age < 25 * 60 * 1000) return this._digest;
+    this._digest = '';
     const r = await fetch(this._siteUrl + '/_api/contextinfo', {
       method: 'POST',
       credentials: 'include',
@@ -30,6 +34,7 @@ export class SharePointService {
     if (r.ok) {
       const data = await r.json();
       this._digest = data.FormDigestValue || '';
+      this._digestTime = Date.now();
     }
     return this._digest;
   }
@@ -47,7 +52,7 @@ export class SharePointService {
     return r.json();
   }
 
-  private async spPost(path: string, body: any): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  private async spPost(path: string, body: any, retry = true): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const digest = await this.getDigest();
     const r = await fetch(this._siteUrl + path, {
       method: 'POST',
@@ -60,6 +65,11 @@ export class SharePointService {
       body: JSON.stringify(body)
     });
     if (!r.ok) {
+      // Auto-retry once on 403 (expired digest)
+      if (r.status === 403 && retry) {
+        this._digest = ''; this._digestTime = 0;
+        return this.spPost(path, body, false);
+      }
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); const em = e.error?.message; msg = (typeof em === 'object' && em?.value) ? em.value : (em || e.error?.code || msg); } catch (_x) { /* ignore */ }
       throw new Error(msg);
@@ -68,7 +78,7 @@ export class SharePointService {
     return text ? JSON.parse(text) : {};
   }
 
-  private async spMerge(path: string, body: any): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  private async spMerge(path: string, body: any, retry = true): Promise<void> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const digest = await this.getDigest();
     const r = await fetch(this._siteUrl + path, {
       method: 'POST',
@@ -83,6 +93,11 @@ export class SharePointService {
       body: JSON.stringify(body)
     });
     if (!r.ok) {
+      // Auto-retry once on 403 (expired digest)
+      if (r.status === 403 && retry) {
+        this._digest = ''; this._digestTime = 0;
+        return this.spMerge(path, body, false);
+      }
       let msg = 'HTTP ' + r.status;
       try { const e = await r.json(); const em = e.error?.message; msg = (typeof em === 'object' && em?.value) ? em.value : (em || e.error?.code || msg); } catch (_x) { /* ignore */ }
       // if digest expired, clear cache so next call refreshes it

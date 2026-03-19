@@ -184,7 +184,7 @@ const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, isLocked, isManager, 
         <span style={{ color: isInternal ? C.muted : C.greenLt, fontWeight: 600, fontSize: 11 }}>{task.project}</span>
         <span style={{ color: C.muted, fontSize: 11 }}>{task.taskCode}</span>
         <div>
-          <span style={{ color: task.status === 'complete' ? C.muted : '#D3D1C7', textDecoration: task.status === 'complete' ? 'line-through' : 'none' }}>{task.description}</span>
+          <span style={{ color: task.status === 'complete' ? C.muted : C.text, textDecoration: task.status === 'complete' ? 'line-through' : 'none' }}>{task.description}</span>
           {task.completionNote && task.status === 'complete' && <div style={{ fontSize: 10, color: C.greenLt, marginTop: 1 }}>{task.completionNote}</div>}
           {showHistory && (
             <div style={{ background: C.bg, borderRadius: 4, border: `1px solid ${C.border}`, padding: '6px 10px', marginTop: 4, maxHeight: 150, overflowY: 'auto' }}>
@@ -205,9 +205,9 @@ const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, isLocked, isManager, 
           ) : <Badge status={task.status} wipPct={task.wipPct} reviewStatus={task.reviewStatus} />}
         </div>
         <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
-          {canComplete && <button onClick={() => setShowComplete(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `1px solid ${C.green}`, background: 'transparent', color: C.greenLt, fontSize: 10, cursor: 'pointer' }}>Done</button>}
-          {canUndo && <button onClick={() => setShowUndo(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `1px solid ${C.amber}`, background: 'transparent', color: C.amberLt, fontSize: 10, cursor: 'pointer' }}>Undo</button>}
-          <button onClick={() => setShowHistory(!showHistory)} style={{ padding: '2px 5px', borderRadius: 3, border: `1px solid ${C.border}`, background: 'transparent', color: showHistory ? '#D3D1C7' : C.dim, fontSize: 10, cursor: 'pointer' }}>Log</button>
+          {canComplete && <button onClick={() => setShowComplete(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `2px solid ${C.green}`, background: 'transparent', color: C.greenLt, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Done</button>}
+          {canUndo && <button onClick={() => setShowUndo(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `1px solid ${C.amber}`, background: 'transparent', color: '#8a5c04', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Undo</button>}
+          <button onClick={() => setShowHistory(!showHistory)} style={{ padding: '2px 5px', borderRadius: 3, border: `1px solid ${C.redDk}`, background: 'transparent', color: showHistory ? C.text : C.muted, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Log</button>
         </div>
       </div>
     </>
@@ -496,16 +496,16 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Loading tasks...</div>;
 
   return (
-    <div style={{ color: C.text, fontSize: 12, padding: '0 0 24px' }}>
+    <div style={{ color: C.text, fontSize: 12, fontWeight: 600, padding: '0 0 24px' }}>
       {/* Week tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
         {weekTabs.map(wt => (
           <button key={wt.offset} onClick={() => { setWeekOffset(wt.offset); setPlanningMode(false); }}
             style={{ padding: '8px 14px', borderRadius: 6, border: wt.offset === weekOffset ? `2px solid ${C.purple}` : `1px solid ${C.border}`, background: wt.offset === weekOffset ? C.purpleBg : wt.isCurrent ? C.card : C.bg, color: wt.offset === weekOffset ? C.purpleLt : wt.isCurrent ? C.text : C.muted, cursor: 'pointer', minWidth: 110, textAlign: 'center', flexShrink: 0, fontFamily: 'inherit', fontSize: 12 }}>
             <div style={{ fontWeight: 600 }}>{wt.label}</div>
-            <div style={{ fontSize: 10, marginTop: 2, opacity: 0.7 }}>{wt.dates}</div>
-            {wt.isPast && <div style={{ fontSize: 9, marginTop: 2, color: C.purple }}>LOCKED</div>}
-            {wt.isCurrent && <div style={{ fontSize: 9, marginTop: 2, color: C.greenLt }}>CURRENT</div>}
+            <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2, opacity: 0.7 }}>{wt.dates}</div>
+            {wt.isPast && <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: C.purple }}>LOCKED</div>}
+            {wt.isCurrent && <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: C.greenLt }}>CURRENT</div>}
           </button>
         ))}
       </div>
@@ -561,13 +561,13 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
       {/* Filters */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)}
-          style={{ padding: '6px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 4, color: C.text, fontSize: 12 }}>
+          style={{ padding: '6px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 4, color: C.text, fontSize: 12, fontWeight: 600, maxWidth: 260 }}>
           <option value="All">All team</option>
           {team.map(t => <option key={t.initials} value={t.initials}>{t.initials} — {t.fullName} ({t.prodHrsPerWeek}h prod)</option>)}
         </select>
         <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', border: `1px solid ${C.border}` }}>
           {(['day', 'person'] as const).map(m => (
-            <button key={m} onClick={() => setViewMode(m)} style={{ padding: '6px 14px', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', background: viewMode === m ? C.purple : C.card, color: viewMode === m ? '#fff' : C.muted }}>By {m}</button>
+            <button key={m} onClick={() => setViewMode(m)} style={{ padding: '4px 14px', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: viewMode === m ? C.purple : C.card, color: viewMode === m ? '#fff' : C.muted }}>By {m}</button>
           ))}
         </div>
       </div>

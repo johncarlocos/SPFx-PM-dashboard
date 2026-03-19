@@ -436,7 +436,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
 
         // Load tasks for weeks -4 to +1
         const allTasks: Record<number, ITask[]> = {};
-        for (let i = -4; i <= 1; i++) {
+        for (let i = -2; i <= 1; i++) {
           const m = getWeekStart(new Date());
           m.setDate(m.getDate() + i * 7);
           const wk = weekKey(m);
@@ -486,7 +486,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
   // Week tabs
   const weekTabs = React.useMemo(() => {
     const tabs = [];
-    for (let i = -4; i <= 1; i++) {
+    for (let i = -2; i <= 1; i++) {
       const m = getWeekStart(new Date()); m.setDate(m.getDate() + i * 7);
       tabs.push({ offset: i, monday: m, label: formatWeekLabel(m), dates: formatDateRange(m), isCurrent: i === 0, isPast: i < 0 });
     }

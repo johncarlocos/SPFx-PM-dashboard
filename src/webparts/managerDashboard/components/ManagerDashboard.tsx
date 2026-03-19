@@ -1046,10 +1046,9 @@ interface RfiDetailProps {
   spService: SharePointService;
   onSendEmail: (to: string, cc: string, subject: string, body: string) => Promise<void>;
   onEdit: () => void;
-  onDelete: () => void;
 }
 
-const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, spService, onSendEmail, onEdit, onDelete }) => {
+const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, spService, onSendEmail, onEdit }) => {
   const total = rfiTot(rfi);
   const st = effSt(rfi);
   const [attachFiles, setAttachFiles] = React.useState<{ FileName: string; ServerRelativeUrl: string }[]>([]);
@@ -1112,7 +1111,6 @@ const RfiDetail: React.FC<RfiDetailProps> = ({ rfi, proj, isManager, siteUrl, sp
         }}>
           Send to Client
         </button>
-        {isManager && <IBtn onClick={onDelete} danger title="Delete RFI">Delete</IBtn>}
       </div>
 
       <SDiv label="Part A — Request Information" />
@@ -2159,7 +2157,6 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                     <IBtn onClick={() => openRfiDetail(r, proj)} title="View RFI">View</IBtn>
                                     {isManager && <IBtn onClick={() => openRfiForm(r, proj)} title="Edit RFI">Edit</IBtn>}
-                                    {isManager && <IBtn onClick={() => confirmDelete('Delete RFI "' + r.rfiNum + '"?', () => { deleteRfi(r).catch(() => undefined); })} danger title="Delete RFI">Del</IBtn>}
                                   </div>
                                 </td>
                               </tr>
@@ -2270,7 +2267,6 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                                   <IBtn onClick={() => openProjDetail(ewo)} title="View EWO">View</IBtn>
                                   {isManager && <IBtn onClick={() => setPanel({ type: 'ewoForm', proj: ewo })} title="Edit EWO">Edit</IBtn>}
-                                  {isManager && <IBtn onClick={() => confirmDelete('Delete EWO "' + (ewo.ewoNum || ewo.projNum) + '"?', () => { deleteProject(ewo).catch(() => undefined); })} danger title="Delete EWO">Del</IBtn>}
                                 </div>
                               </td>
                             </tr>
@@ -2393,10 +2389,6 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
               }
             }}
             onEdit={() => setPanel({ type: 'rfiForm', rfi: panel.rfi, parentProj: panel.parentProj })}
-            onDelete={() => {
-              const rRef = panel.rfi!;
-              confirmDelete('Delete RFI "' + rRef.rfiNum + '"?', () => { deleteRfi(rRef).catch(() => undefined); });
-            }}
           />
         )}
       </Panel>

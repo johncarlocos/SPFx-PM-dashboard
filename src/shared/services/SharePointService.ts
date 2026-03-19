@@ -278,7 +278,7 @@ export class SharePointService {
       admin: Number(i.admin) || 0,
       revision: i.revision || 'A',
       email: i.email || '',
-      emailSentDate: i.emailSentDate || ''
+      emailSentDate: this.parseDate(i.emailSentDate)
     }));
   }
 

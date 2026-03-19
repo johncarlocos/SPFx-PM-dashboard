@@ -1981,13 +1981,17 @@ const ManagerDashboard: React.FC<IManagerDashboardProps> = (props) => {
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 12, color: 'var(--t1)', cursor: 'pointer', maxWidth: 160, wordBreak: 'break-word' }} onClick={() => openProjDetail(p)}>
                               <div>{p.name}</div>
                               {p.discipline && (
-                                <span style={{
-                                  display: 'inline-block', marginTop: 3, padding: '1px 6px', borderRadius: 3,
-                                  fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-                                  background: p.discipline === 'Concrete' ? 'rgba(107,79,200,0.12)' : p.discipline === 'Steel & Concrete' ? 'rgba(42,158,42,0.12)' : 'rgba(37,99,235,0.12)',
-                                  color: p.discipline === 'Concrete' ? '#6b4fc8' : p.discipline === 'Steel & Concrete' ? '#2a9e2a' : '#2563eb',
-                                  border: `1px solid ${p.discipline === 'Concrete' ? '#6b4fc8' : p.discipline === 'Steel & Concrete' ? '#2a9e2a' : '#2563eb'}`
-                                }}>{p.discipline}</span>
+                                <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'wrap' }}>
+                                  {(p.discipline === 'Steel & Concrete' ? ['Steel', 'Concrete'] : [p.discipline]).map(disc => (
+                                    <span key={disc} style={{
+                                      display: 'inline-block', padding: '1px 6px', borderRadius: 3,
+                                      fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
+                                      background: disc === 'Concrete' ? 'rgba(107,79,200,0.12)' : 'rgba(37,99,235,0.12)',
+                                      color: disc === 'Concrete' ? '#6b4fc8' : '#2563eb',
+                                      border: `1px solid ${disc === 'Concrete' ? '#6b4fc8' : '#2563eb'}`
+                                    }}>{disc}</span>
+                                  ))}
+                                </div>
                               )}
                             </td>
                             <td style={{ padding: '9px 6px', fontFamily: 'Montserrat', fontWeight: 600, fontSize: 11.5, color: 'var(--t2)', maxWidth: 120, wordBreak: 'break-word' }}>{p.company || '—'}</td>

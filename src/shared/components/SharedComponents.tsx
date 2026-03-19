@@ -50,7 +50,7 @@ export const HrsBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
         <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 600 }}> / {allowed}h</span></span>
         <span style={{ color: col, fontWeight: over ? 700 : 600 }}>{over ? '+' : ''}{rem}h {over ? 'OVER' : 'left'}</span>
       </div>
-      <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
+      <div style={{ height: 6, background: pct === 0 ? '#ccc' : 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width .4s' }} />
       </div>
     </div>
@@ -66,7 +66,7 @@ export const RfiBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
           {used > 0 ? <span style={{ color: 'var(--t2)', fontWeight: 600 }}>{used} used</span> : '—'}
           <span style={{ color: 'var(--t4)', fontWeight: 600 }}> / no limit</span>
         </div>
-        <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3 }} />
+        <div style={{ height: 6, background: '#ccc', borderRadius: 3 }} />
       </div>
     );
   }
@@ -80,7 +80,7 @@ export const RfiBar: React.FC<{ allowed: number; used: number }> = ({ allowed, u
         <span style={{ color: 'var(--t2)' }}>{used}<span style={{ color: 'var(--t4)', fontWeight: 600 }}> / {allowed}</span></span>
         <span style={{ color: col, fontWeight: over ? 700 : 600 }}>{over ? `+${Math.abs(rem)} OVER` : `${rem} left`}</span>
       </div>
-      <div style={{ height: 6, background: 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
+      <div style={{ height: 6, background: pct === 0 ? '#ccc' : 'var(--s2)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width .4s' }} />
       </div>
     </div>

@@ -68,7 +68,7 @@ export interface IRfi {
   total?: number;
 }
 
-export const PROJ_STATUSES = ['Active', 'Complete', 'Project Won', 'Waiting PO', 'Sent for RFI', 'Sent for IFA', 'Waiting on Eng/Arch', 'Ready to Inv', 'Archive', 'On Hold', 'Cancelled'];
+export const PROJ_STATUSES = ['Active', 'Complete', 'Project Won', 'Waiting PO', 'Sent for RFI', 'Sent for IFA', 'Waiting on Eng/Arch', 'Ready to Inv', 'Archive', 'On Hold', 'Waiting on Dwgs', 'Waiting EWO Approval', 'Cancelled'];
 export const RFI_STATUSES = ['Open', 'Closed', 'Partially Open (Revise and Resend)', 'On Hold', 'Overdue'];
 export const RFI_TYPES = ['Specifications', 'Drawings', 'Shop Drawings', 'Design', 'General', 'Coordination', 'Material', 'Other'];
 export const RFI_RESPONSES = ['Pending', 'Approved', 'Approved with Comments', 'Rejected', 'For Information Only', 'Revise and Resubmit'];
@@ -84,6 +84,8 @@ export const STATUS_CFG: Record<string, { bg: string; color: string; bd: string 
   'Ready to Inv': { bg: 'rgba(16,185,129,0.12)', color: '#0d7a56', bd: '#10b981' },
   'Archive': { bg: 'rgba(90,110,136,.10)', color: '#4a5e78', bd: '#5a6e88' },
   'On Hold': { bg: 'rgba(155,127,232,0.12)', color: '#5838b8', bd: '#9b7fe8' },
+  'Waiting on Dwgs': { bg: 'rgba(212,136,10,0.12)', color: '#a06808', bd: '#d4880a' },
+  'Waiting EWO Approval': { bg: 'rgba(249,115,22,0.12)', color: '#b84a10', bd: '#f97316' },
   'Over Budget': { bg: 'rgba(232,69,69,0.13)', color: '#b82020', bd: '#e84545' },
   'Cancelled': { bg: 'rgba(90,110,136,.10)', color: '#4a5e78', bd: '#5a6e88' },
   'Open': { bg: 'rgba(61,182,61,0.13)', color: '#1e8a1e', bd: '#3db63d' },

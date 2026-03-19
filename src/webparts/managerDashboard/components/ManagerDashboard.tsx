@@ -98,7 +98,7 @@ function drawPdfBg(doc: any, pw: number, ph: number): void {
 function drawLetterhead(doc: any, pw: number, ph: number, title: string, subtitle: string): number {
   drawPdfBg(doc, pw, ph);
   // Title bar below header area
-  const barY = 30;
+  const barY = 37;
   const barH = 12;
   doc.setFillColor(26, 32, 48);
   doc.rect(0, barY, pw, barH, 'F');

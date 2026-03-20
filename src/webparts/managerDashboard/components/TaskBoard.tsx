@@ -140,13 +140,15 @@ const UndoModal: React.FC<{ task: ITask; onConfirm: (reason: string) => void; on
 interface TaskRowProps {
   task: ITask;
   onUpdate: (t: ITask) => void;
+  onEdit: (t: ITask) => void;
+  onDelete: (t: ITask) => void;
   isLocked: boolean;
   isManager: boolean;
   currentUserInitials: string;
   isInternal: boolean;
 }
 
-const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, isLocked, isManager, currentUserInitials, isInternal }) => {
+const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, onEdit, onDelete, isLocked, isManager, currentUserInitials, isInternal }) => {
   const [showComplete, setShowComplete] = React.useState(false);
   const [showUndo, setShowUndo] = React.useState(false);
   const [showHistory, setShowHistory] = React.useState(false);
@@ -179,7 +181,7 @@ const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, isLocked, isManager, 
     <>
       {showComplete && <CompleteModal task={task} onConfirm={handleComplete} onCancel={() => setShowComplete(false)} />}
       {showUndo && <UndoModal task={task} onConfirm={handleUndo} onCancel={() => setShowUndo(false)} />}
-      <div style={{ display: 'grid', gridTemplateColumns: '4px 76px 62px 1fr 44px 60px 90px 72px', gap: 6, padding: '5px 8px', alignItems: 'center', fontSize: 12, borderBottom: `1px solid ${C.card}`, opacity: task.status === 'complete' ? 0.6 : 1, background: isInternal ? 'rgba(90,110,136,0.04)' : 'transparent' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '4px 70px 52px 1fr 36px 50px 80px 110px', gap: 6, padding: '5px 8px', alignItems: 'center', fontSize: 12, borderBottom: `1px solid ${C.card}`, opacity: task.status === 'complete' ? 0.6 : 1, background: isInternal ? 'rgba(90,110,136,0.04)' : 'transparent' }}>
         <div style={{ width: 4, height: 22, borderRadius: 2, background: isInternal ? C.dim : prioC[task.priority] || C.amberLt }} />
         <span style={{ color: isInternal ? C.muted : C.greenLt, fontWeight: 600, fontSize: 11 }}>{task.project}</span>
         <span style={{ color: C.muted, fontSize: 11 }}>{task.taskCode}</span>
@@ -204,10 +206,16 @@ const TaskRow: React.FC<TaskRowProps> = ({ task, onUpdate, isLocked, isManager, 
             </div>
           ) : <Badge status={task.status} wipPct={task.wipPct} reviewStatus={task.reviewStatus} />}
         </div>
-        <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
-          {canComplete && <button onClick={() => setShowComplete(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `2px solid ${C.green}`, background: 'transparent', color: C.greenLt, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Done</button>}
-          {canUndo && <button onClick={() => setShowUndo(true)} style={{ padding: '2px 6px', borderRadius: 3, border: `1px solid ${C.amber}`, background: 'transparent', color: '#8a5c04', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Undo</button>}
-          <button onClick={() => setShowHistory(!showHistory)} style={{ padding: '2px 5px', borderRadius: 3, border: `1px solid ${C.redDk}`, background: 'transparent', color: showHistory ? C.text : C.muted, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Log</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {canComplete && <button onClick={() => setShowComplete(true)} style={{ padding: '2px 0', width: 42, borderRadius: 3, border: 'none', background: C.green, color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>Done</button>}
+            {canUndo && <button onClick={() => setShowUndo(true)} style={{ padding: '2px 0', width: 42, borderRadius: 3, border: 'none', background: C.amber, color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>Undo</button>}
+            {canEdit && <button onClick={() => onEdit(task)} style={{ padding: '2px 0', width: 42, borderRadius: 3, border: 'none', background: C.purple, color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>Edit</button>}
+          </div>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {canEdit && <button onClick={() => { if (confirm('Delete task "' + task.description + '"?')) onDelete(task); }} style={{ padding: '2px 0', width: 42, borderRadius: 3, border: `1px solid ${C.redDk}`, background: 'transparent', color: C.redDk, fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>Del</button>}
+            <button onClick={() => setShowHistory(!showHistory)} style={{ padding: '2px 0', width: 42, borderRadius: 3, border: `1px solid ${C.muted}`, background: showHistory ? C.muted : 'transparent', color: showHistory ? '#fff' : C.muted, fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>Log</button>
+          </div>
         </div>
       </div>
     </>
@@ -220,6 +228,71 @@ const CodeOpts: React.FC<{ codes: typeof PROD_TASK_CODES; value: string; onChang
     {codes.map(g => <optgroup key={g.group} label={g.group}>{g.codes.map(c => <option key={c.id} value={c.id}>{c.id} — {c.label}</option>)}</optgroup>)}
   </select>
 );
+
+// ── Edit Task Modal ──────────────────────────────────────────
+interface EditTaskModalProps {
+  task: ITask;
+  team: ITeamMember[];
+  activeProjects: IProject[];
+  onSave: (t: ITask) => void;
+  onCancel: () => void;
+}
+const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, team, activeProjects, onSave, onCancel }) => {
+  const [d, setD] = React.useState<ITask>({ ...task });
+  const set = (field: string, val: string | number): void => setD(p => ({ ...p, [field]: val }));
+  const isProd = !isNonProd(d.project);
+  const ss: React.CSSProperties = { padding: '6px 10px', background: '#f5f6f8', border: `1px solid ${C.border}`, borderRadius: 4, color: C.text, fontSize: 12, fontWeight: 600, width: '100%', boxSizing: 'border-box' as const };
+  return (
+    <Modal onClose={onCancel}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 16 }}>Edit Task</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>PROJECT</label>
+          <select value={d.project} onChange={e => set('project', e.target.value)} style={ss}>
+            <option value="3E-INT">3E-INT (Non-production)</option>
+            {activeProjects.map(p => <option key={p.projNum} value={p.projNum}>{p.projNum}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>TASK CODE</label>
+          <CodeOpts codes={isProd ? PROD_TASK_CODES : NON_PROD_TASK_CODES} value={d.taskCode} onChange={v => set('taskCode', v)} style={ss} />
+        </div>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>DESCRIPTION</label>
+        <input value={d.description} onChange={e => set('description', e.target.value)} style={ss} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>WHO</label>
+          <select value={d.assignee} onChange={e => set('assignee', e.target.value)} style={ss}>
+            {team.map(t => <option key={t.initials} value={t.initials}>{t.initials}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>DAY</label>
+          <select value={d.day} onChange={e => set('day', parseInt(e.target.value))} style={ss}>
+            {DAYS.map((day, i) => <option key={i} value={i}>{day.substring(0, 3)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>HOURS</label>
+          <input type="number" step="0.5" min="0" value={d.hoursPlanned} onChange={e => set('hoursPlanned', parseFloat(e.target.value) || 0)} style={ss} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: 'block', marginBottom: 4 }}>PRIORITY</label>
+          <select value={d.priority} onChange={e => set('priority', e.target.value)} style={ss}>
+            <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button onClick={onCancel} style={{ padding: '8px 18px', borderRadius: 5, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+        <button onClick={() => onSave(d)} style={{ padding: '8px 18px', borderRadius: 5, border: 'none', background: C.green, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
+      </div>
+    </Modal>
+  );
+};
 
 // ── Plan Week Panel ──────────────────────────────────────────
 interface PlanRow {
@@ -473,6 +546,22 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
     } catch (e) { toast('Failed to add tasks: ' + String(e)); }
   };
 
+  const deleteTask = async (task: ITask): Promise<void> => {
+    try {
+      if (task.spId) await spService.deleteTask(task.spId);
+      setTasks(p => ({ ...p, [weekOffset]: (p[weekOffset] || []).filter(t => t.id !== task.id) }));
+      toast('Task deleted');
+    } catch (e) { toast('Delete failed: ' + String(e)); }
+  };
+
+  const [editTask, setEditTask] = React.useState<ITask | null>(null);
+
+  const saveEditedTask = async (updated: ITask): Promise<void> => {
+    await updateTask(updated);
+    setEditTask(null);
+    toast('Task updated');
+  };
+
   // Computed stats
   const prodTasks = weekTasks.filter(t => !isNonProd(t.project));
   const intTasks = weekTasks.filter(t => isNonProd(t.project));
@@ -573,7 +662,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
       </div>
 
       {/* Column headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: '4px 76px 62px 1fr 44px 60px 90px 72px', gap: 6, padding: '4px 8px', fontSize: 10, fontWeight: 600, color: C.dim, letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '4px 70px 52px 1fr 36px 50px 80px 110px', gap: 6, padding: '4px 8px', fontSize: 10, fontWeight: 600, color: C.dim, letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}` }}>
         <span></span><span>PROJECT</span><span>TASK</span><span>DESCRIPTION</span>
         <span style={{ textAlign: 'center' }}>WHO</span><span style={{ textAlign: 'center' }}>HOURS</span><span>STATUS</span><span style={{ textAlign: 'right' }}>ACTIONS</span>
       </div>
@@ -600,7 +689,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
                 <span>{dayAll.filter(t => t.status === 'complete').length}/{dayAll.length} done</span>
               </div>
             </div>
-            {dayProd.length > 0 && <div style={{ padding: '0 4px' }}>{dayProd.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={false} />)}</div>}
+            {dayProd.length > 0 && <div style={{ padding: '0 4px' }}>{dayProd.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onEdit={setEditTask} onDelete={deleteTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={false} />)}</div>}
             {dayInt.length > 0 && (
               <div style={{ borderTop: `1px dashed ${C.border}`, margin: '0 4px' }}>
                 <div style={{ padding: '6px 8px 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -608,7 +697,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
                   <div style={{ flex: 1, height: 1, background: C.border }} />
                   <span style={{ fontSize: 10, color: C.dim }}>{round1(dayInt.reduce((s, t) => s + t.hoursPlanned, 0))}h</span>
                 </div>
-                {dayInt.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={true} />)}
+                {dayInt.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onEdit={setEditTask} onDelete={deleteTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={true} />)}
               </div>
             )}
             {dayAll.length === 0 && !isLocked && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: C.dim }}>No tasks — use "Plan week" to add</div>}
@@ -652,14 +741,14 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
                 return (
                   <div key={di}>
                     <div style={{ padding: '6px 8px 2px', fontSize: 10, fontWeight: 600, color: C.dim }}>{day} {getDayDate(monday, di)}</div>
-                    {dayProd2.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={false} />)}
+                    {dayProd2.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onEdit={setEditTask} onDelete={deleteTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={false} />)}
                     {dayInt2.length > 0 && (
                       <>
                         <div style={{ padding: '4px 8px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 9, color: C.dim, letterSpacing: '0.04em' }}>NON-PROD</span>
                           <div style={{ flex: 1, height: 1, background: C.border }} />
                         </div>
-                        {dayInt2.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={true} />)}
+                        {dayInt2.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onEdit={setEditTask} onDelete={deleteTask} isLocked={isLocked} isManager={isManager} currentUserInitials={currentUserInitials} isInternal={true} />)}
                       </>
                     )}
                   </div>
@@ -671,6 +760,16 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ spService, projects, userDisplayN
       })}
 
       {weekTasks.length === 0 && !planningMode && <div style={{ padding: '40px 0', textAlign: 'center', color: C.dim, fontSize: 13 }}>No tasks for this week.{isManager ? ' Click "Plan week" to start planning.' : ''}</div>}
+
+      {editTask && (
+        <EditTaskModal
+          task={editTask}
+          team={team}
+          activeProjects={activeProjects}
+          onSave={saveEditedTask}
+          onCancel={() => setEditTask(null)}
+        />
+      )}
     </div>
   );
 };
